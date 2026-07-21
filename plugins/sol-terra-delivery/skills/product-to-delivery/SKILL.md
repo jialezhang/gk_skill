@@ -47,7 +47,9 @@ Use explicit model selection on thread creation and on every follow-up turn:
 - delivery control, implementation, debugging, local rework, and integration: `gpt-5.6-terra`;
 - focused checks, build, checklist review, browser E2E, evidence collection, and routine final acceptance: `gpt-5.6-luna`.
 
-Read actual turn metadata after every turn and append `requested_model`, `observed_model`, and verification status to `model-routing.jsonl`. A mismatch returns `MODEL_ROUTE_MISMATCH`, invalidates that turn's output as delivery evidence, and stops dependent work. Never accept an agent name, prompt claim, or self-report as model evidence.
+Read actual `turn_context.payload.model` metadata from the runtime rollout after every turn. Append the thread/turn identity, explicit-request fact, requested model, runtime-observed model, observation source, phase, and verification status to `model-routing.jsonl`. Validate the log against the raw rollout rather than trusting its copied `observed_model`. A mismatch returns `MODEL_ROUTE_MISMATCH`, invalidates that turn's output as delivery evidence, and stops dependent work. Never accept an agent name, prompt claim, UI label, or self-report as model evidence.
+
+The live Canary requires an initial and an explicit-model follow-up turn for each model, plus the same-thread sequence Terra → Luna → Sol → Terra. A missing follow-up, unknown task class, unavailable rollout turn, or implicit model request blocks formal execution.
 
 Use a fresh reviewer context when independence matters. Sol is an escalation path, not the default verifier.
 

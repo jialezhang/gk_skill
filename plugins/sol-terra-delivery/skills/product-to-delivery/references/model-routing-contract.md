@@ -13,26 +13,37 @@ Thread names and agent roles do not prove model identity. The controller must:
 Required record:
 
 ```json
-{"turn_id":"...","task_class":"implementation","requested_model":"gpt-5.6-terra","observed_model":"gpt-5.6-terra","verified":true,"allowed_reason":"implementation"}
+{"thread_id":"...","turn_id":"...","task_class":"implementation","requested_model":"gpt-5.6-terra","request_explicit":true,"observed_model":"gpt-5.6-terra","observed_source":"rollout.turn_context.payload.model","phase":"execution","verified":true,"allowed_reason":"implementation"}
 ```
 
 Validate with:
 
 ```bash
-python3 scripts/validate_model_routing.py <model-routing.jsonl>
+python3 scripts/validate_model_routing.py <model-routing.jsonl> --require-runtime-evidence
 ```
 
-Run the command from the plugin root. A record rejected by the validator cannot support a gate or completion claim.
+Run the command from the plugin root. The validator locates the rollout by `thread_id`, matches `turn_id`, and reads every matching `turn_context.payload.model`. The copied `observed_model` is not authoritative. Missing, ambiguous, or mismatched runtime evidence fails validation. A rejected record cannot support a gate or completion claim.
 
 ## Live Canary
 
-Before formal delivery, create one minimal turn and one follow-up turn for each of Sol, Terra, and Luna. Record observed metadata, then run:
+Before formal delivery:
+
+1. create one minimal task for each of Sol, Terra, and Luna;
+2. run an initial and an explicit-model follow-up turn in each task;
+3. create one transition task and explicitly run Terra → Luna → Sol → Terra in the same thread;
+4. record the real thread/turn identities and runtime metadata;
+5. run:
 
 ```bash
-python3 scripts/validate_model_routing.py <model-routing.jsonl> --require-canary
+python3 scripts/validate_model_routing.py <model-routing.jsonl> \
+  --require-canary \
+  --require-transition-canary \
+  --require-runtime-evidence
 ```
 
-`MODEL_ROUTE_MISMATCH`, missing metadata, or an incomplete Canary blocks delivery. Reinstall/configure the plugin or repair routing before spending implementation tokens.
+`MODEL_ROUTE_MISMATCH`, `RUNTIME_MODEL_MISMATCH`, an implicit follow-up model, unknown task class, missing metadata, or an incomplete Canary blocks delivery. Reinstall/configure the plugin or repair routing before spending implementation tokens.
+
+Use a separate visible Codex task for Luna when the native subagent surface does not expose a Luna model override. A task named “Luna verifier” is not Luna evidence.
 
 ## Allowed Sol use
 

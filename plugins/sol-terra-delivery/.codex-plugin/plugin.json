@@ -1,6 +1,6 @@
 {
   "name": "sol-terra-delivery",
-  "version": "0.2.0+codex.20260721125146",
+  "version": "0.2.0+codex.20260721131959",
   "description": "Scope-sized product delivery with verified Sol planning, Terra execution, Luna acceptance, bounded agents, checkpoints, and multi-Goal integration.",
   "author": {
     "name": "jialezhang"

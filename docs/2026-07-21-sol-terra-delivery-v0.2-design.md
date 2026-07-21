@@ -20,7 +20,7 @@
 
 ### 模型路由必须有运行时证据
 
-每次创建 task 和每个 follow-up turn 都必须显式传入模型，并从 runtime turn metadata 读取实际模型，写入 `model-routing.jsonl`。
+每次创建 task 和每个 follow-up turn 都必须显式传入模型，并从 runtime rollout 的 `turn_context.payload.model` 读取实际模型，写入 `model-routing.jsonl`。验证器按 `thread_id + turn_id` 重新读取原始 rollout，不信任日志中手填或复制的 `observed_model`。
 
 | 工作 | 默认模型 |
 | --- | --- |
@@ -28,7 +28,7 @@
 | 实现、调试、返工、集成 | Terra |
 | focused test、build、checklist、浏览器 E2E、常规最终验收 | Luna |
 
-`requested_model != observed_model` 或缺少实际 metadata 时返回 `MODEL_ROUTE_MISMATCH`，该 turn 产物不能作为交付证据。正式执行前必须完成 Sol、Terra、Luna 首 turn 与 follow-up turn Canary。
+`requested_model != runtime_model`、缺少实际 metadata、follow-up 未显式传 model 或 task class 未知时，该 turn 产物不能作为交付证据。正式执行前必须完成 Sol、Terra、Luna 首 turn 与 follow-up turn Canary，并完成同一 task 的 Terra → Luna → Sol → Terra 切换 Canary。
 
 ### 控制并行与上下文成本
 
@@ -51,6 +51,9 @@ Agent 预算按整个 Program 累计，而不是按 Goal 重置：正常目标 8
 - 实际模型与请求模型不一致会失败；
 - Sol 用于 routine verification 会失败；
 - Canary 缺少 Sol/Terra/Luna 任一模型会失败；
+- Canary 缺少任一模型的 initial/follow-up 或同 task 切换顺序错误会失败；
+- 日志声称 Terra、原始 rollout 实际为 Sol 时会失败；
+- follow-up 未显式传 model 或使用未知 task class 时会失败；
 - 第 21 个 Agent 会失败；
 - completed checkpoint 缺少 commit/push/report 会失败；
 - 任一 Goal 未 push、未验证或路由无效时，Program 集成会失败。

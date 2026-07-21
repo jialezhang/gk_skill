@@ -98,59 +98,179 @@ created_at: "2026-07-21T00:00:00Z"
 
 
 class ModelRoutingPolicyTests(unittest.TestCase):
-    def _validate(self, records: list[dict[str, object]], *extra: str) -> subprocess.CompletedProcess[str]:
+    def _validate(
+        self,
+        records: list[dict[str, object]],
+        *extra: str,
+        runtime_models: dict[tuple[str, str], str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "model-routing.jsonl"
+            root = Path(tmp)
+            path = root / "model-routing.jsonl"
             path.write_text(
                 "".join(json.dumps(record) + "\n" for record in records),
                 encoding="utf-8",
             )
-            return run_script("scripts/validate_model_routing.py", str(path), *extra)
+            sessions = root / "sessions"
+            sessions.mkdir()
+            for (thread_id, turn_id), model in (runtime_models or {}).items():
+                rollout = sessions / f"rollout-test-{thread_id}.jsonl"
+                with rollout.open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps({
+                        "timestamp": "2026-07-21T00:00:00Z",
+                        "type": "turn_context",
+                        "payload": {"turn_id": turn_id, "model": model},
+                    }) + "\n")
+            return run_script(
+                "scripts/validate_model_routing.py",
+                str(path),
+                "--sessions-root",
+                str(sessions),
+                *extra,
+            )
+
+    @staticmethod
+    def _record(
+        turn_id: str,
+        task_class: str,
+        model: str,
+        *,
+        thread_id: str = "thread-1",
+        phase: str = "execution",
+        sequence_index: int | None = None,
+    ) -> dict[str, object]:
+        record: dict[str, object] = {
+            "thread_id": thread_id,
+            "turn_id": turn_id,
+            "task_class": task_class,
+            "requested_model": model,
+            "request_explicit": True,
+            "observed_model": model,
+            "observed_source": "rollout.turn_context.payload.model",
+            "phase": phase,
+            "verified": True,
+            "allowed_reason": "routing_canary" if task_class.startswith("routing_") else task_class,
+        }
+        if sequence_index is not None:
+            record["sequence_index"] = sequence_index
+        return record
 
     def test_each_turn_must_observe_the_requested_model(self) -> None:
-        result = self._validate(
-            [
-                {
-                    "turn_id": "implementation-1",
-                    "task_class": "implementation",
-                    "requested_model": "gpt-5.6-terra",
-                    "observed_model": "gpt-5.6-sol",
-                    "verified": True,
-                    "allowed_reason": "implementation",
-                }
-            ]
-        )
+        record = self._record("implementation-1", "implementation", "gpt-5.6-terra")
+        record["observed_model"] = "gpt-5.6-sol"
+        result = self._validate([record])
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("MODEL_ROUTE_MISMATCH", result.stderr)
 
-    def test_canary_requires_sol_terra_and_luna_actual_turns(self) -> None:
-        records = [
-            {
-                "turn_id": f"canary-{model}",
-                "task_class": "routing_canary",
-                "requested_model": model,
-                "observed_model": model,
-                "verified": True,
-                "allowed_reason": "routing_canary",
-            }
-            for model in ("gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna")
-        ]
-        result = self._validate(records, "--require-canary")
+    def test_canary_requires_initial_and_followup_for_each_model(self) -> None:
+        records: list[dict[str, object]] = []
+        runtime: dict[tuple[str, str], str] = {}
+        for short, model in (
+            ("sol", "gpt-5.6-sol"),
+            ("terra", "gpt-5.6-terra"),
+            ("luna", "gpt-5.6-luna"),
+        ):
+            for phase in ("initial", "followup"):
+                thread_id = f"thread-{short}"
+                turn_id = f"canary-{short}-{phase}"
+                records.append(self._record(
+                    turn_id,
+                    "routing_canary",
+                    model,
+                    thread_id=thread_id,
+                    phase=phase,
+                ))
+                runtime[(thread_id, turn_id)] = model
+        result = self._validate(
+            records,
+            "--require-canary",
+            "--require-runtime-evidence",
+            runtime_models=runtime,
+        )
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_sol_is_rejected_for_routine_verification(self) -> None:
+    def test_incomplete_followup_canary_is_rejected(self) -> None:
+        records = [
+            self._record(
+                f"canary-{short}-initial",
+                "routing_canary",
+                model,
+                thread_id=f"thread-{short}",
+                phase="initial",
+            )
+            for short, model in (
+                ("sol", "gpt-5.6-sol"),
+                ("terra", "gpt-5.6-terra"),
+                ("luna", "gpt-5.6-luna"),
+            )
+        ]
+        result = self._validate(records, "--require-canary")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("MODEL_CANARY_INCOMPLETE", result.stderr)
+
+    def test_runtime_rollout_rejects_forged_observed_model(self) -> None:
+        record = self._record("implementation-1", "implementation", "gpt-5.6-terra")
         result = self._validate(
-            [
-                {
-                    "turn_id": "verify-1",
-                    "task_class": "routine_verification",
-                    "requested_model": "gpt-5.6-sol",
-                    "observed_model": "gpt-5.6-sol",
-                    "verified": True,
-                    "allowed_reason": "routine_verification",
-                }
-            ]
+            [record],
+            "--require-runtime-evidence",
+            runtime_models={("thread-1", "implementation-1"): "gpt-5.6-sol"},
         )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("RUNTIME_MODEL_MISMATCH", result.stderr)
+
+    def test_followup_without_explicit_model_is_rejected(self) -> None:
+        record = self._record(
+            "terra-followup",
+            "routing_canary",
+            "gpt-5.6-terra",
+            phase="followup",
+        )
+        record["request_explicit"] = False
+        result = self._validate([record])
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("MODEL_REQUEST_NOT_EXPLICIT", result.stderr)
+
+    def test_same_thread_transition_sequence_is_verified(self) -> None:
+        models = [
+            "gpt-5.6-terra",
+            "gpt-5.6-luna",
+            "gpt-5.6-sol",
+            "gpt-5.6-terra",
+        ]
+        records = [
+            self._record(
+                f"transition-{index}",
+                "routing_transition",
+                model,
+                thread_id="thread-transition",
+                phase="transition",
+                sequence_index=index,
+            )
+            for index, model in enumerate(models, 1)
+        ]
+        runtime = {
+            ("thread-transition", f"transition-{index}"): model
+            for index, model in enumerate(models, 1)
+        }
+        result = self._validate(
+            records,
+            "--require-transition-canary",
+            "--require-runtime-evidence",
+            runtime_models=runtime,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_unknown_task_class_is_rejected(self) -> None:
+        result = self._validate([
+            self._record("unknown-1", "mystery_work", "gpt-5.6-terra")
+        ])
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("UNKNOWN_TASK_CLASS", result.stderr)
+
+    def test_sol_is_rejected_for_routine_verification(self) -> None:
+        result = self._validate([
+            self._record("verify-1", "routine_verification", "gpt-5.6-sol")
+        ])
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("SOL_REASON_NOT_ALLOWED", result.stderr)
 
