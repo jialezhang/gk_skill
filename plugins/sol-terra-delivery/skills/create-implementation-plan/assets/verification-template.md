@@ -10,6 +10,8 @@ plan_version: 0.1.0
 - Product/module:
 - Entry/route:
 - Build/commit:
+- Clean worktree:
+- Model-routing log/Canary:
 - Flags/configuration:
 - User/owner:
 - Data:
@@ -60,3 +62,5 @@ plan_version: 0.1.0
 - Verified:
 - Complete:
 - Remaining non-blocking risks:
+- Checkpoint commits pushed/reported:
+- Integrated clean commit (multi-Goal):

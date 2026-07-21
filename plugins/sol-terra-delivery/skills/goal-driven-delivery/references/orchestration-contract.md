@@ -2,7 +2,7 @@
 
 ## Single runtime owner
 
-The Terra delivery controller is the only owner of live execution state. Spec Kit artifacts are durable baselines, not a second scheduler. Sol reviewers may revise plans and issue verdicts but do not dispatch implementation while Terra is active.
+The program controller owns cross-Goal dependencies, cumulative Agent budget, and integration readiness. Each Terra Goal controller owns only its Goal's live state. Spec Kit artifacts are durable baselines, not a second scheduler. Sol reviewers may revise plans and issue verdicts but do not dispatch implementation while Terra is active.
 
 ## Role routing
 
@@ -13,10 +13,15 @@ The Terra delivery controller is the only owner of live execution state. Spec Ki
 | Backend implementation | `backend_executor` | `gpt-5.6-terra` / high |
 | Data/migration implementation | `data_executor` | `gpt-5.6-terra` / high |
 | Focused debugging | `debugger` | configured standard model / high |
-| Test design and verification | `test_executor` / `verifier` | Terra or configured verifier |
-| Plan revision and gate review | `sol_planner` / `sol_reviewer` | `gpt-5.6-sol` / xhigh |
+| Routine test execution and verification | `luna_verifier` | `gpt-5.6-luna` / medium or high |
+| Routine final acceptance | `luna_acceptance` | `gpt-5.6-luna` / high |
+| Plan/architecture/security escalation | `sol_planner` / `sol_reviewer` | `gpt-5.6-sol` / high; xhigh only when justified |
 
-Treat names as roles; model mapping is configurable. Preserve the authority boundary even when models change.
+Model identity is a runtime contract. Pass the explicit model on every turn and verify observed metadata; a role name is not evidence.
+
+## Program budget
+
+Count every spawned child Agent cumulatively across all Goal sessions: target 8, soft limit 12, hard limit 20. Limit nesting to one level and active Goal sessions to three. Completed or failed Agents still count toward the cumulative total. Only the program controller may allocate new budget.
 
 ## Executor autonomy
 
@@ -51,4 +56,4 @@ Retry only after identifying a changed hypothesis, input, implementation, or env
 
 ## Parallelism
 
-Parallelize only when dependencies are satisfied, contracts are stable, write scopes do not overlap, and integration ordering is explicit. The controller integrates results; executors do not negotiate shared contracts independently.
+Parallelize only when dependencies are satisfied, contracts are stable, worktrees/write scopes do not overlap, development ports are isolated, and integration ordering is explicit. The program controller integrates results; executors do not negotiate shared contracts independently.

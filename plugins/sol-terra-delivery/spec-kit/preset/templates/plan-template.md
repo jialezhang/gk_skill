@@ -15,6 +15,31 @@ current_milestone: M1
 - Blocking journeys:
 - Invariants and non-goals:
 
+## Scope Assessment and Goal Packaging
+
+- Scope assessment path/revision:
+- P50/P80/P90 wall-clock estimate:
+- Split recommendation/decision/source:
+- Program baseline: single_goal | multi_goal
+
+| Goal | Independent outcome | P50/P80 | Dependencies | Write conflicts | Session | Worktree/branch | Port/browser context | Checkpoint |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+
+## Program Dependency and Conflict Graph
+
+```text
+[Goal dependency and write-conflict graph]
+```
+
+## Model and Agent Budget
+
+- Sol allowed reasons:
+- Terra execution stages:
+- Luna routine verification stages:
+- Agent target/soft/hard limit: 8 / 12 / 20
+- Maximum parallel Goal sessions: 3
+- Model-routing Canary evidence:
+
 ## Requirement Traceability
 
 | Requirement | Journey | Milestone | Tasks | Automated evidence | Exact-target case | Gate |
@@ -86,6 +111,15 @@ current_milestone: M1
 
 | Task | Preferred role | Required skills | Write scope | Parallel with | Reviewer |
 | --- | --- | --- | --- | --- | --- |
+
+## Checkpoint and Integration Plan
+
+| Checkpoint | Goal | Runnable outcome | Required checks | Commit/push/report | Integration order |
+| --- | --- | --- | --- | --- | --- |
+
+- Integration owner:
+- Integration worktree/branch:
+- Clean-commit verification commands:
 
 ## Verification Strategy
 

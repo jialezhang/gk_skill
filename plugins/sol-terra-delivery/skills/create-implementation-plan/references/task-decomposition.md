@@ -49,7 +49,9 @@ Do not hide a long-running journey inside layer-only tasks that separately imple
 
 ## Parallel plan
 
-Tasks may run concurrently only when dependencies are satisfied, shared contracts are frozen, write scopes do not overlap, and integration order is explicit. A parallel marker is permission, not an instruction to maximize concurrency.
+Tasks may run concurrently only when dependencies are satisfied, shared contracts are frozen, worktrees/write scopes and ports do not overlap, and integration order is explicit. A parallel marker is permission, not an instruction to maximize concurrency. Keep total parallel Goal sessions at three or fewer and all child Agents within the program-wide hard limit of 20.
+
+Every planned stage ends with a runnable checkpoint, owned-file commit, remote push, and fixed-denominator progress report. Integration and final acceptance consume clean commits, never an uncommitted worktree snapshot.
 
 ## Gate placement
 

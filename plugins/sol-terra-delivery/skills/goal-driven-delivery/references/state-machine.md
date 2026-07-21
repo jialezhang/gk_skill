@@ -25,7 +25,9 @@ A gate becomes `review_ready` only when all prerequisites and required evidence 
 
 ## Attempt identity
 
-Each assignment creates a unique attempt containing task ID, artifact revisions, executor role/agent, write scope, start/end time, result, commits/diff identity, tests, evidence, deviations, and invalidation status.
+Each assignment creates a unique attempt containing Goal/session/worktree, task ID, artifact revisions, requested and observed model, executor role/agent, write scope, start/end time, result, commits/diff identity, tests, evidence, deviations, and invalidation status.
+
+Every completed checkpoint records a clean commit SHA, verified remote push, fixed-denominator progress report, and model-routing validation. A checkpoint without all four remains `checkpoint_incomplete`.
 
 ## Artifact pinning
 

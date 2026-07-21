@@ -13,8 +13,10 @@ from pathlib import Path
 EXPECTED_SKILLS = {
     "product-to-delivery",
     "create-product-prd",
+    "assess-goal-scope",
     "create-implementation-plan",
     "goal-driven-delivery",
+    "integrate-goals",
     "review-delivery-gate",
 }
 
@@ -78,6 +80,7 @@ def main() -> int:
     required_files = [
         "spec-kit/preset/preset.yml",
         "spec-kit/preset/templates/spec-template.md",
+        "spec-kit/preset/templates/scope-assessment-template.yaml",
         "spec-kit/preset/templates/plan-template.md",
         "spec-kit/preset/templates/tasks-template.md",
         "spec-kit/extension/extension.yml",
@@ -98,6 +101,7 @@ def main() -> int:
     for component in ("sol-terra-artifacts", "delivery-governance", "sol-terra-pre-delivery"):
         require(component in bundle, f"bundle omits {component}", errors)
     require("$create-product-prd" in workflow, "workflow does not invoke create-product-prd", errors)
+    require("$assess-goal-scope" in workflow, "workflow does not invoke assess-goal-scope", errors)
     require("$create-implementation-plan" in workflow, "workflow does not invoke create-implementation-plan", errors)
 
     text_suffixes = {".md", ".yaml", ".yml", ".json", ".py"}
@@ -111,6 +115,11 @@ def main() -> int:
 
     fixture = plugin_root / "tests" / "fixtures" / "valid"
     checks = [
+        [
+            sys.executable,
+            str(skill_root / "assess-goal-scope" / "scripts" / "validate_scope_assessment.py"),
+            str(skill_root / "assess-goal-scope" / "assets" / "scope-assessment-template.yaml"),
+        ],
         [
             sys.executable,
             str(skill_root / "create-product-prd" / "scripts" / "validate_prd.py"),
@@ -135,6 +144,13 @@ def main() -> int:
             str(skill_root / "goal-driven-delivery" / "assets" / "delivery-state-template.yaml"),
             "--allow-empty",
         ],
+        [
+            sys.executable,
+            str(skill_root / "integrate-goals" / "scripts" / "validate_integration_manifest.py"),
+            str(skill_root / "integrate-goals" / "assets" / "program-integration-template.json"),
+            "--allow-empty",
+        ],
+        [sys.executable, str(plugin_root / "tests" / "test_delivery_policy.py")],
     ]
     for command in checks:
         result = subprocess.run(command, text=True, capture_output=True)

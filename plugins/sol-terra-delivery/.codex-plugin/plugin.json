@@ -1,15 +1,15 @@
 {
   "name": "sol-terra-delivery",
-  "version": "0.1.0",
-  "description": "Spec-driven product delivery with Sol planning, Terra execution, approvals, escalation, and evidence-based completion.",
+  "version": "0.2.0",
+  "description": "Scope-sized product delivery with verified Sol planning, Terra execution, Luna acceptance, bounded agents, checkpoints, and multi-Goal integration.",
   "author": {
     "name": "jialezhang"
   },
   "skills": "./skills/",
   "interface": {
     "displayName": "Sol Terra Delivery",
-    "shortDescription": "Plan with Sol and deliver with Terra.",
-    "longDescription": "Turns product discovery into an approved PRD and implementation baseline, then runs a persistent multi-agent delivery loop with explicit Sol escalation and final product verification.",
+    "shortDescription": "Plan with Sol, deliver with Terra, verify with Luna.",
+    "longDescription": "Sizes approved work before planning, splits large delivery into isolated Goals when selected, verifies the actual model used on every turn, checkpoints clean commits, and integrates Goal branches before final acceptance.",
     "developerName": "jialezhang",
     "category": "Productivity",
     "capabilities": [],

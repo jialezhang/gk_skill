@@ -3,9 +3,9 @@ schema_version: "1.0"
 workflow:
   id: "sol-terra-pre-delivery"
   name: "Sol Terra Pre-Delivery"
-  version: "0.1.0"
+  version: "0.2.0"
   author: "jialezhang"
-  description: "Creates and approves PRD, plan, and tasks with Sol; intentionally stops before implementation."
+  description: "Creates an approved PRD, sizes Goal boundaries, and prepares approved plan artifacts before implementation."
 
 requires:
   speckit_version: ">=0.12.0"
@@ -54,9 +54,13 @@ steps:
     integration: "{{ inputs.integration }}"
     model: "{{ inputs.planner_model }}"
     prompt: >-
-      Use $create-implementation-plan for the approved spec.md. Run the full
+      First use $assess-goal-scope for the approved spec.md, inspect the actual
+      repository, write scope-assessment.yaml, and resolve Goal packaging using
+      the skill's split decision and timeout rule. Then use
+      $create-implementation-plan for the approved spec.md and validated scope
+      decision. Run the full
       readiness, architecture baseline, complete task DAG, verification design,
-      independent Sol review, and deterministic validation process. Write
+      model-routed independent review, and deterministic validation process. Write
       plan.md, tasks.md, and verification.md, then stop at PLAN_REVIEW_REQUIRED.
 
   - id: review-plan

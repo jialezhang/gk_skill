@@ -15,14 +15,20 @@
 | Discovery complete, no PRD | `create-product-prd` |
 | PRD `DRAFT` or `CHANGE_REQUESTED` | revise PRD |
 | PRD `REVIEW_REQUIRED` | wait for user approval |
-| PRD `APPROVED`, no matching plan | `create-implementation-plan` |
+| PRD `APPROVED`, no matching scope assessment | `assess-goal-scope` |
+| Scope split decision pending | ask user; after 240 seconds default to one Goal |
+| Scope decision recorded, no matching plan | `create-implementation-plan` |
 | Plan `READINESS_BLOCKED` | Sol gathers missing technical evidence |
 | Plan `PLAN_REVIEW_REQUIRED` | wait for user approval |
-| Plan `PLAN_APPROVED`, no active delivery | `goal-driven-delivery` |
+| Plan `PLAN_APPROVED`, Canary missing | run and verify Sol/Terra/Luna routing Canary |
+| Single-Goal plan approved, no active delivery | `goal-driven-delivery` |
+| Multi-Goal program approved | start bounded Goal sessions/worktrees by dependency wave |
 | Delivery active, local failure | Terra repair loop |
 | Delivery active, plan contradiction | Sol plan review/revision |
 | Delivery active, product conflict | user decision |
-| All tasks appear done | independent verification then Sol final acceptance |
+| Goal checkpoint complete | commit, push, and progress report |
+| All Goals complete | `integrate-goals` in a clean integration worktree |
+| Integrated target appears done | Luna routine final acceptance; Sol only on allowed escalation |
 
 ## Stage invariants
 

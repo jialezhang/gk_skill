@@ -14,6 +14,8 @@ Every executor receives:
 8. rollback/disable expectations;
 9. allowed local deviations and Sol escalation triggers;
 10. required handoff schema.
+11. explicit requested model, allowed reason, and observed-model recording destination;
+12. worktree, branch, port/browser context, checkpoint, and cumulative Agent budget allocation.
 
 Do not load unrelated future tasks or the whole acceptance runbook into an executor's active context.
 

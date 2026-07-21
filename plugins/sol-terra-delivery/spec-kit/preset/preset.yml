@@ -3,10 +3,10 @@ schema_version: "1.0"
 preset:
   id: "sol-terra-artifacts"
   name: "Sol Terra Delivery Artifacts"
-  version: "0.1.0"
-  description: "Agent-ready PRD, evidence-based implementation plan, and delegated task DAG templates."
+  version: "0.2.0"
+  description: "Agent-ready PRD, scope assessment, bounded Goal plans, delegated task DAG, and exact-target verification templates."
   author: "jialezhang"
-  repository: "https://github.com/jialezhang/skill"
+  repository: "https://github.com/jialezhang/gk_skill"
   license: "MIT"
 
 requires:
@@ -19,6 +19,11 @@ provides:
       file: "templates/spec-template.md"
       description: "Approval-aware Agent-ready PRD"
       replaces: "spec-template"
+
+    - type: "template"
+      name: "scope-assessment-template"
+      file: "templates/scope-assessment-template.yaml"
+      description: "P50/P80/P90 sizing and Goal packaging decision"
 
     - type: "template"
       name: "plan-template"

@@ -1,11 +1,11 @@
 ---
 name: create-product-prd
-description: Create or revise an Agent-ready product requirements document from a completed grill-me or discovery conversation. Use after product intent, scope, non-goals, and acceptance intent are sufficiently clear, and before implementation planning; write an approval-ready product contract without assigning models, agents, files, or code tasks.
+description: Use after product intent, scope, non-goals, and acceptance intent are sufficiently clear, and before implementation planning begins.
 ---
 
 # Create Product PRD
 
-Use a Sol-class product agent. If the current agent is not equivalent, spawn `gpt-5.6-sol` with `xhigh` reasoning and make it the PRD author.
+Use one `gpt-5.6-sol` product author with `high` reasoning. Reserve `xhigh` for a documented product contradiction or unusually high-risk decision; document the reason in `model-routing.jsonl`.
 
 Read these references completely before writing:
 
@@ -37,12 +37,13 @@ Read these references completely before writing:
 
 ### Phase 4: Independent review and revision
 
-1. Spawn a fresh Sol-class reviewer that did not author the draft. Give it the PRD, discovery handoff, and raw evidence—not the author's intended conclusion.
-2. Review against the quality rubric. Classify findings as `blocking`, `major`, or `minor` and assign each to discovery, PRD, or planning.
-3. Resolve every blocking and major PRD-owned finding. Ask the user only for product-owned findings.
-4. Run `python3 scripts/validate_prd.py <spec.md>` from this skill directory.
-5. Set `prd_status: REVIEW_REQUIRED`. Do not set `APPROVED` yourself.
-6. Present artifact path/version, material decisions, rejected options, remaining risks, and the exact approval boundary.
+1. Use a fresh `gpt-5.6-luna` context for deterministic completeness, traceability, ambiguity, and acceptance-journey review. Give it the PRD, discovery handoff, and raw evidence—not the author's intended conclusion.
+2. Use a second Sol reviewer only when Luna identifies a genuine product contradiction, safety decision, or unresolved high-risk judgment. Do not spend Sol on the same routine checklist twice.
+3. Review against the quality rubric. Classify findings as `blocking`, `major`, or `minor` and assign each to discovery, PRD, or planning.
+4. Resolve every blocking and major PRD-owned finding. Ask the user only for product-owned findings.
+5. Run `python3 scripts/validate_prd.py <spec.md>` from this skill directory.
+6. Set `prd_status: REVIEW_REQUIRED`. Do not set `APPROVED` yourself.
+7. Present artifact path/version, material decisions, rejected options, remaining risks, and the exact approval boundary.
 
 ## Boundaries
 

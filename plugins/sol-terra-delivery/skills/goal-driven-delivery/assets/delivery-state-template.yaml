@@ -5,9 +5,18 @@ controller:
   role: terra_delivery
   agent_id: ""
   lease_updated_at: ""
+program:
+  program_id: ""
+  scope_assessment_path: ""
+  split_decision: single_goal
+  integration_status: not_required
 goal:
   objective: ""
   status: active
+  session_id: ""
+  worktree: ""
+  branch: ""
+  development_port: null
 artifacts:
   prd_path: ""
   prd_version: ""
@@ -18,8 +27,18 @@ artifacts:
   verification_path: ""
   verification_version: ""
 target_identity: {}
+model_routing_log: "model-routing.jsonl"
+model_canary_status: pending
+agent_budget:
+  normal_target: 8
+  soft_limit: 12
+  hard_limit: 20
+  spawned_total: 0
+  max_nesting_depth: 1
+  max_parallel_goal_sessions: 3
 tasks: {}
 gates: {}
+checkpoints: []
 attempts: []
 active_agents: []
 escalations: []

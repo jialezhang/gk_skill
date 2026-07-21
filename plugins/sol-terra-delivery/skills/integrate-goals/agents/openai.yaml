@@ -1,0 +1,4 @@
+interface:
+  display_name: "Integrate Goals"
+  short_description: "Combine verified Goal branches into one release candidate."
+  default_prompt: "Use $integrate-goals to integrate the completed Goal branches and verify the clean release candidate."

@@ -1,6 +1,6 @@
 ---
 name: product-to-delivery
-description: Orchestrate an approved product-development lifecycle across discovery, PRD creation, implementation planning, Goal-driven multi-agent delivery, escalation, and final verification. Use when a user wants the complete Sol-planning/Terra-delivery workflow or asks what stage to run next; pause at PRD and plan approvals.
+description: Use when a user wants to take product intent through approved artifacts and verified delivery, or needs the next valid stage after a pause or restart.
 ---
 
 # Product to Delivery
@@ -12,6 +12,7 @@ Read these references completely before routing a stage:
 - [references/lifecycle-contract.md](references/lifecycle-contract.md)
 - [references/stage-routing.md](references/stage-routing.md)
 - [references/approval-protocol.md](references/approval-protocol.md)
+- [references/model-routing-contract.md](references/model-routing-contract.md)
 
 ## Route the current stage
 
@@ -19,30 +20,36 @@ Read these references completely before routing a stage:
 2. If product intent is unclear, explicitly invoke the installed `$grill-me` skill. If unavailable, conduct equivalent focused discovery. Do not design implementation yet.
 3. When discovery is sufficient, invoke `$create-product-prd` with a Sol-class product agent.
 4. Stop after `REVIEW_REQUIRED`. Continue only after explicit approval of the exact PRD revision.
-5. Invoke `$create-implementation-plan` with a Sol-class planner.
-6. Stop after `PLAN_REVIEW_REQUIRED`. Continue only after explicit approval of the exact plan/tasks revisions.
-7. Invoke `$goal-driven-delivery`. Create the sole top-level Goal only in this stage.
-8. Invoke `$review-delivery-gate` at defined gates, on plan-level contradictions, and for final acceptance.
-9. If a PRD or plan revision invalidates approval, return to the owning stage rather than patching around it.
+5. Invoke `$assess-goal-scope` before implementation planning. A P80 above 8 hours triggers a split discussion; a P80 above 10 hours triggers a strong recommendation. If the user-input mechanism supports auto-resolution, wait 240 seconds. Silence resolves only Goal packaging to `split_decision: single_goal` with `decision_source: timeout_default_single`.
+6. Invoke `$create-implementation-plan` with a Sol-class planner and the validated scope decision. A split decision creates one program baseline and 2–3 bounded Goal plans; a single decision creates one Goal plan.
+7. Stop after `PLAN_REVIEW_REQUIRED`. Continue only after explicit approval of the exact plan/tasks revisions.
+8. Run the Sol/Terra/Luna model-routing Canary before formal execution. Do not start implementation when actual per-turn routing is unverified.
+9. Invoke `$goal-driven-delivery` once per approved Goal. Each Goal receives its own visible session, worktree, branch, state, and checkpoint sequence. One program controller owns the cross-Goal dependency graph and Agent budget.
+10. When multiple Goals finish, invoke `$integrate-goals` to merge them in an integration worktree and verify a clean integration commit.
+11. Invoke `$review-delivery-gate` for evidence gates, final acceptance, and plan conflicts using the least costly model allowed by the routing contract.
+12. If a PRD or plan revision invalidates approval, return to the owning stage rather than patching around it.
 
 ## Authority
 
 - Product decisions belong to the user.
-- PRD, architecture baseline, plan revision, gate review, and final acceptance belong to Sol-class agents.
-- Runtime scheduling, implementation, retries, and evidence collection belong to the Terra delivery controller and its bounded executors.
-- Only one delivery controller may own live task state.
+- PRD, scope judgment, architecture baseline, and high-risk plan revision belong to Sol-class agents.
+- Runtime scheduling, implementation, debugging, integration, and retries belong to Terra controllers and executors.
+- Routine evidence execution, browser E2E, build checks, checklist review, and routine final acceptance belong to Luna.
+- One program controller owns program truth; each Goal controller owns only its Goal state.
 
 Never infer approval from silence, earlier discussion, or a model's confidence.
 
 ## Model routing
 
-When the caller has not already selected an equivalent model:
+Use explicit model selection on thread creation and on every follow-up turn:
 
-- discovery, PRD, planning, plan revision, gate review, and final acceptance: spawn `gpt-5.6-sol` with `xhigh` reasoning;
-- delivery control and implementation: spawn `gpt-5.6-terra` with `high` reasoning;
-- use a separate reviewer context from the author whenever a quality gate depends on independent criticism.
+- product discovery, PRD, scope assessment, implementation planning, architecture/plan contradiction, and high-risk security judgment: `gpt-5.6-sol`;
+- delivery control, implementation, debugging, local rework, and integration: `gpt-5.6-terra`;
+- focused checks, build, checklist review, browser E2E, evidence collection, and routine final acceptance: `gpt-5.6-luna`.
 
-Model names are defaults, not product artifacts. Preserve role authority if configuration maps the roles to newer models.
+Read actual turn metadata after every turn and append `requested_model`, `observed_model`, and verification status to `model-routing.jsonl`. A mismatch returns `MODEL_ROUTE_MISMATCH`, invalidates that turn's output as delivery evidence, and stops dependent work. Never accept an agent name, prompt claim, or self-report as model evidence.
+
+Use a fresh reviewer context when independence matters. Sol is an escalation path, not the default verifier.
 
 ## Recovery
 

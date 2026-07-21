@@ -24,6 +24,8 @@
 - Dependencies form an executable DAG.
 - Tasks define bounded ownership and safe parallelism.
 - Terra can execute without recreating architecture decisions.
+- Every Goal has bounded P80, worktree/session/branch ownership, checkpoints, and an integration path.
+- Routine coverage review uses Luna; Sol review has a recorded escalation reason.
 - Plan-level contradictions have an explicit Sol escalation path.
 
 ### Verification integrity
