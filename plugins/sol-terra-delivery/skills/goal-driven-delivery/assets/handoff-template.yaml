@@ -1,0 +1,24 @@
+task_id: ""
+attempt_id: ""
+status: completed # completed | needs_rework | blocked | plan_conflict
+executor_role: ""
+write_scope: []
+artifact_revisions:
+  prd: ""
+  plan: ""
+  tasks: ""
+  verification: ""
+changes: []
+contracts_consumed: []
+tests:
+  passed: []
+  failed: []
+exact_target_evidence: []
+deviations: []
+plan_conflicts: []
+remaining_risks: []
+diff_review:
+  out_of_scope_changes: []
+  forbidden_changes: []
+rollback_or_disable_checked: false
+recommended_next: []

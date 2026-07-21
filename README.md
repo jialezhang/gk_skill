@@ -1,0 +1,103 @@
+# Sol–Terra Spec-Driven Delivery Toolkit
+
+An installable Codex plugin and Spec Kit customization for this lifecycle:
+
+```text
+$grill-me
+→ $create-product-prd
+→ user approves PRD
+→ $create-implementation-plan
+→ user approves plan
+→ $goal-driven-delivery
+→ Terra executors and independent verification
+→ plan conflict escalates to Sol
+→ product conflict escalates to the user
+→ verified completion
+```
+
+The toolkit keeps the two control planes separate:
+
+- Spec Kit owns durable artifacts: `spec.md`, `plan.md`, `tasks.md`, approvals, and traceability.
+- Codex owns live execution: one top-level Goal, subagent attempts, retries, escalation, and completion.
+
+It does not replace the existing `grill-me` skill. The PRD skill consumes the completed conversation or a discovery artifact. The implementation-plan skill is a new, standalone toolkit skill whose planning method is based on the custom planning work in [`jialezhang/skill`](https://github.com/jialezhang/skill/tree/main).
+
+## Install the Codex plugin
+
+From this repository root:
+
+```bash
+codex plugin marketplace add .
+codex plugin add sol-terra-delivery@gk-skill
+```
+
+Restart Codex after installation so the five skills are discovered.
+
+## Install the Spec Kit layer into a project
+
+Install Spec Kit first if `specify` is unavailable:
+
+```bash
+uv tool install specify-cli
+```
+
+Then run:
+
+```bash
+python3 plugins/sol-terra-delivery/scripts/install.py \
+  --project /absolute/path/to/project \
+  --init-spec-kit
+```
+
+The installer adds the local preset, governance extension, and pre-delivery workflow. It does not start delivery or approve either gate.
+
+## Use it
+
+The initial recommended surface is explicit stage commands:
+
+```text
+$grill-me
+
+$create-product-prd
+Use the completed discovery above. Write the PRD into the current Spec Kit feature.
+
+# After reviewing and explicitly approving the PRD:
+$create-implementation-plan
+
+# After reviewing and explicitly approving plan.md and tasks.md:
+$goal-driven-delivery
+```
+
+`$product-to-delivery` is the convenience controller. It selects the current stage and pauses at both human approval gates. It never treats silence as approval.
+
+## Skill depth
+
+The entry `SKILL.md` files are intentionally short routing surfaces. They are not the whole implementation. Each stage loads its detailed protocol from `references/`, instantiates output shapes from `assets/`, and runs deterministic checks from `scripts/`. This keeps unrelated instructions out of the active context without reducing delivery rigor.
+
+| Skill | Full procedure behind the entry point |
+| --- | --- |
+| `$product-to-delivery` | Lifecycle state detection, approval protocol, stage routing, recovery, and Sol/Terra authority boundaries |
+| `$create-product-prd` | Discovery normalization, repository and user evidence, product-state modeling, requirement metadata, independent review, and deterministic PRD validation |
+| `$create-implementation-plan` | Direction readiness, architecture and ownership contracts, complete milestone/task baseline, dependency graph, delegation map, exact-target verification, independent plan review, and cross-artifact validation |
+| `$goal-driven-delivery` | One Goal owner, ready-queue scheduling, role-specific execution packets, safe parallelism, handoffs, retries, gate checks, escalation, revision pinning, and restart recovery |
+| `$review-delivery-gate` | Independent evidence review, plan-level conflict classification, revision invalidation, exact-target acceptance, and final PRD-to-runtime reconciliation |
+
+The planning skill is therefore not a reduced replacement for the earlier planning work. It preserves the high-value readiness, responsibility-replacement, verification, rollback, and Legacy-exit methods, while removing repeated prose and treating unsupported implementation guesses as `VERIFY_FIRST` rather than facts.
+
+The optional Spec Kit workflow prepares artifacts only:
+
+```bash
+specify workflow run sol-terra-pre-delivery \
+  --input feature="Describe the feature" \
+  --input planner_model="gpt-5.6-sol"
+```
+
+Do not use that external workflow and `$goal-driven-delivery` as concurrent implementation controllers. Delivery is owned by the Codex skill.
+
+## Validate the package
+
+```bash
+python3 plugins/sol-terra-delivery/scripts/validate_toolkit.py
+```
+
+The validator checks the plugin, all skills, Spec Kit manifests, templates, and cross-file IDs. A full smoke test additionally installs the Spec Kit components into a disposable initialized project.

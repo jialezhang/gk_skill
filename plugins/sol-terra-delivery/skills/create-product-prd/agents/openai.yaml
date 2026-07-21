@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Product PRD"
+  short_description: "Create an approval-ready PRD from product discovery."
+  default_prompt: "Use $create-product-prd to turn the completed discovery into an approval-ready PRD."

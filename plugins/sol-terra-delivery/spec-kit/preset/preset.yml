@@ -1,0 +1,44 @@
+schema_version: "1.0"
+
+preset:
+  id: "sol-terra-artifacts"
+  name: "Sol Terra Delivery Artifacts"
+  version: "0.1.0"
+  description: "Agent-ready PRD, evidence-based implementation plan, and delegated task DAG templates."
+  author: "jialezhang"
+  repository: "https://github.com/jialezhang/skill"
+  license: "MIT"
+
+requires:
+  speckit_version: ">=0.12.0"
+
+provides:
+  templates:
+    - type: "template"
+      name: "spec-template"
+      file: "templates/spec-template.md"
+      description: "Approval-aware Agent-ready PRD"
+      replaces: "spec-template"
+
+    - type: "template"
+      name: "plan-template"
+      file: "templates/plan-template.md"
+      description: "Readiness and evidence-based implementation baseline"
+      replaces: "plan-template"
+
+    - type: "template"
+      name: "tasks-template"
+      file: "templates/tasks-template.md"
+      description: "Dependency DAG with role, scope, verification, and escalation metadata"
+      replaces: "tasks-template"
+
+    - type: "template"
+      name: "verification-template"
+      file: "templates/verification-template.md"
+      description: "Exact-target verification and gate matrix"
+
+tags:
+  - "product"
+  - "planning"
+  - "multi-agent"
+  - "delivery"

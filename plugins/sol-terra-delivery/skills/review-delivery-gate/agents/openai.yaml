@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Delivery Gate"
+  short_description: "Review delivery gates and exact-target completion."
+  default_prompt: "Use $review-delivery-gate to review the current gate or plan conflict against approved artifacts."

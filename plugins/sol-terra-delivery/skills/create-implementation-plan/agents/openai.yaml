@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Implementation Plan"
+  short_description: "Create a governed implementation baseline and task DAG."
+  default_prompt: "Use $create-implementation-plan to plan the approved PRD with evidence, tasks, gates, and rollback."

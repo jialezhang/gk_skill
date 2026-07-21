@@ -1,0 +1,18 @@
+{
+  "name": "sol-terra-delivery",
+  "version": "0.1.0",
+  "description": "Spec-driven product delivery with Sol planning, Terra execution, approvals, escalation, and evidence-based completion.",
+  "author": {
+    "name": "jialezhang"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Sol Terra Delivery",
+    "shortDescription": "Plan with Sol and deliver with Terra.",
+    "longDescription": "Turns product discovery into an approved PRD and implementation baseline, then runs a persistent multi-agent delivery loop with explicit Sol escalation and final product verification.",
+    "developerName": "jialezhang",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Use $product-to-delivery to guide this feature from discovery through approved and verified delivery."
+  }
+}

@@ -1,0 +1,32 @@
+schema_version: "1.0"
+
+extension:
+  id: "delivery-governance"
+  name: "Delivery Governance"
+  version: "0.1.0"
+  description: "Explicit PRD and plan approvals plus delivery status reconciliation for Sol-Terra delivery."
+  category: "process"
+  effect: "read-write"
+  author: "jialezhang"
+  repository: "https://github.com/jialezhang/skill"
+  license: "MIT"
+
+requires:
+  speckit_version: ">=0.12.0"
+
+provides:
+  commands:
+    - name: "speckit.delivery-governance.approve-prd"
+      file: "commands/speckit.delivery-governance.approve-prd.md"
+      description: "Record explicit user approval of the current PRD"
+    - name: "speckit.delivery-governance.approve-plan"
+      file: "commands/speckit.delivery-governance.approve-plan.md"
+      description: "Record explicit user approval of plan and task baseline"
+    - name: "speckit.delivery-governance.status"
+      file: "commands/speckit.delivery-governance.status.md"
+      description: "Reconcile product, plan, task, and delivery states"
+
+tags:
+  - "approval"
+  - "governance"
+  - "delivery"

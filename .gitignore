@@ -1,0 +1,4 @@
+.DS_Store
+.omx/
+__pycache__/
+*.py[cod]

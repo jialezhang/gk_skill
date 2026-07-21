@@ -1,0 +1,20 @@
+{
+  "name": "gk-skill",
+  "interface": {
+    "displayName": "GK Skill"
+  },
+  "plugins": [
+    {
+      "name": "sol-terra-delivery",
+      "source": {
+        "source": "local",
+        "path": "./plugins/sol-terra-delivery"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

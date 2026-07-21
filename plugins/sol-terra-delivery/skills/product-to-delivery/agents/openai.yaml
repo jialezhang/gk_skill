@@ -1,0 +1,4 @@
+interface:
+  display_name: "Product to Delivery"
+  short_description: "Guide approved product work through verified delivery."
+  default_prompt: "Use $product-to-delivery to route this feature through discovery, approvals, delivery, and verification."

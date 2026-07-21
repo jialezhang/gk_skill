@@ -1,0 +1,4 @@
+interface:
+  display_name: "Goal Driven Delivery"
+  short_description: "Run approved plans with agents, escalation, and evidence."
+  default_prompt: "Use $goal-driven-delivery to execute the approved plan through verified completion."

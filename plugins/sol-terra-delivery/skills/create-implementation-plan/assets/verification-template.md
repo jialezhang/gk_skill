@@ -1,0 +1,62 @@
+---
+verification_status: PLAN_REVIEW_REQUIRED
+plan_version: 0.1.0
+---
+
+# Verification: [Feature]
+
+## Target Identity
+
+- Product/module:
+- Entry/route:
+- Build/commit:
+- Flags/configuration:
+- User/owner:
+- Data:
+- Providers:
+
+## Automated and Integration Matrix
+
+| Requirement/task | Check | Command/operation | Evidence | Status |
+| --- | --- | --- | --- | --- |
+
+## Runtime Lifecycle and Convergence Matrix
+
+- Applicability: applicable | not applicable, with evidence
+- Authoritative status source:
+- Declared convergence bound:
+
+| Journey | Lifecycle/correlation | Interruption or event condition | Expected authoritative result | Surfaces that must converge | Duplicate-side-effect check | Evidence | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+
+## Exact-target Acceptance Cases
+
+### AC-001: [Blocking journey]
+
+- Preconditions:
+- Exact target:
+- User/owner:
+- Provider/data:
+- Actions:
+- Observable result:
+- Authoritative persisted result:
+- Interruption/reconnect and event-loss conditions when applicable:
+- Cross-surface convergence deadline when applicable:
+- Duplicate-side-effect protection when applicable:
+- Evidence paths:
+- Forbidden substitutions:
+- Failure routing:
+
+## Gate Matrix
+
+| Gate | Prerequisites | Required evidence | Pass condition | Failure action | Status |
+| --- | --- | --- | --- | --- | --- |
+
+## Final Reconciliation
+
+- Implemented:
+- Enabled:
+- Executed:
+- Verified:
+- Complete:
+- Remaining non-blocking risks:

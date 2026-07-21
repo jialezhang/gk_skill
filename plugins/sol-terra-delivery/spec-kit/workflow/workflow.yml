@@ -1,0 +1,73 @@
+schema_version: "1.0"
+
+workflow:
+  id: "sol-terra-pre-delivery"
+  name: "Sol Terra Pre-Delivery"
+  version: "0.1.0"
+  author: "jialezhang"
+  description: "Creates and approves PRD, plan, and tasks with Sol; intentionally stops before implementation."
+
+requires:
+  speckit_version: ">=0.12.0"
+  integrations:
+    any:
+      - "codex"
+
+inputs:
+  feature:
+    type: string
+    required: true
+    prompt: "Describe the already-discussed feature or provide the discovery artifact path"
+  integration:
+    type: string
+    default: "codex"
+  planner_model:
+    type: string
+    default: "gpt-5.6-sol"
+
+steps:
+  - id: create-prd
+    type: prompt
+    integration: "{{ inputs.integration }}"
+    model: "{{ inputs.planner_model }}"
+    prompt: >-
+      Use $create-product-prd. Treat this as the completed discovery input:
+      {{ inputs.feature }}. Resolve the active Spec Kit feature directory, run
+      the full evidence, independent review, and validation process, write
+      spec.md, and stop at REVIEW_REQUIRED.
+
+  - id: review-prd
+    type: gate
+    message: "Review the PRD product contract. Approval applies to this exact revision."
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: approve-prd
+    command: "speckit.delivery-governance.approve-prd"
+    integration: "{{ inputs.integration }}"
+    model: "{{ inputs.planner_model }}"
+    input:
+      args: "approval_source=workflow_prd_gate"
+
+  - id: create-plan
+    type: prompt
+    integration: "{{ inputs.integration }}"
+    model: "{{ inputs.planner_model }}"
+    prompt: >-
+      Use $create-implementation-plan for the approved spec.md. Run the full
+      readiness, architecture baseline, complete task DAG, verification design,
+      independent Sol review, and deterministic validation process. Write
+      plan.md, tasks.md, and verification.md, then stop at PLAN_REVIEW_REQUIRED.
+
+  - id: review-plan
+    type: gate
+    message: "Review plan.md, tasks.md, and verification coverage. Approval applies to these exact revisions."
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: approve-plan
+    command: "speckit.delivery-governance.approve-plan"
+    integration: "{{ inputs.integration }}"
+    model: "{{ inputs.planner_model }}"
+    input:
+      args: "approval_source=workflow_plan_gate"

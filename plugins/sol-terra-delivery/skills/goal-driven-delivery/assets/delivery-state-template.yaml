@@ -1,0 +1,31 @@
+schema_version: "1.0"
+delivery_id: ""
+status: DELIVERY_ACTIVE
+controller:
+  role: terra_delivery
+  agent_id: ""
+  lease_updated_at: ""
+goal:
+  objective: ""
+  status: active
+artifacts:
+  prd_path: ""
+  prd_version: ""
+  plan_path: ""
+  plan_version: ""
+  tasks_path: ""
+  tasks_version: ""
+  verification_path: ""
+  verification_version: ""
+target_identity: {}
+tasks: {}
+gates: {}
+attempts: []
+active_agents: []
+escalations: []
+decisions: []
+evidence: []
+stale_items: []
+next_actions: []
+created_at: ""
+updated_at: ""
