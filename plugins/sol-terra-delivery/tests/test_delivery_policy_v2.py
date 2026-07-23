@@ -39,7 +39,7 @@ def routing_record(
         "observed_source": "rollout.turn_context.payload.model",
         "phase": "execution",
         "verified": True,
-        "allowed_reason": "routing_canary" if task_class == "routing_handshake" else task_class,
+        "allowed_reason": "routing_canary" if task_class.startswith("routing_") else task_class,
     }
     record.update(extra)
     return record
@@ -62,6 +62,9 @@ class ModelHandshakeTests(unittest.TestCase):
             "gpt-5.6-terra",
             phase="handshake",
             write_allowed=False,
+            routing_surface="native_subagent",
+            model_selection_scope="context_creation",
+            fork_turns="none",
         )
         execution = routing_record(
             "implementation-1",
@@ -71,6 +74,101 @@ class ModelHandshakeTests(unittest.TestCase):
         )
         result = self.validate([handshake, execution], "--require-handshake")
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_native_full_history_fork_cannot_claim_terra_override(self) -> None:
+        handshake = routing_record(
+            "handshake-1",
+            "routing_handshake",
+            "gpt-5.6-terra",
+            phase="handshake",
+            write_allowed=False,
+            routing_surface="native_subagent",
+            model_selection_scope="context_creation",
+            fork_turns="all",
+        )
+        result = self.validate([handshake], "--require-handshake")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("NATIVE_FULL_HISTORY_MODEL_OVERRIDE_FORBIDDEN", result.stderr)
+
+    def test_terra_task_name_does_not_override_runtime_model(self) -> None:
+        record = routing_record(
+            "implementation-1",
+            "implementation",
+            "gpt-5.6-terra",
+            task_name="material_terra_controller",
+            agent_type="executor",
+            observed_model="gpt-5.4",
+        )
+        result = self.validate([record])
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("MODEL_ROUTE_MISMATCH", result.stderr)
+
+    def test_runtime_spawn_call_rejects_forged_fork_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sessions = root / "sessions"
+            sessions.mkdir()
+            handshake = routing_record(
+                "handshake-1",
+                "routing_handshake",
+                "gpt-5.6-terra",
+                phase="handshake",
+                write_allowed=False,
+                routing_surface="native_subagent",
+                model_selection_scope="context_creation",
+                fork_turns="none",
+                spawn_controller_thread_id="controller-thread",
+                spawn_call_id="spawn-call-1",
+            )
+            routing = root / "routing.jsonl"
+            routing.write_text(json.dumps(handshake) + "\n", encoding="utf-8")
+            (sessions / "rollout-thread-1.jsonl").write_text(
+                json.dumps(
+                    {
+                        "type": "turn_context",
+                        "payload": {
+                            "turn_id": "handshake-1",
+                            "model": "gpt-5.6-terra",
+                        },
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            (sessions / "rollout-controller-thread.jsonl").write_text(
+                json.dumps(
+                    {
+                        "type": "response_item",
+                        "payload": {
+                            "type": "function_call",
+                            "namespace": "collaboration",
+                            "name": "spawn_agent",
+                            "call_id": "spawn-call-1",
+                            "arguments": json.dumps(
+                                {
+                                    "task_name": "material_terra_controller",
+                                    "agent_type": "executor",
+                                    "fork_turns": "all",
+                                }
+                            ),
+                        },
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            result = run_script(
+                "scripts/validate_model_routing.py",
+                str(routing),
+                "--require-runtime-evidence",
+                "--sessions-root",
+                str(sessions),
+                "--archived-root",
+                str(root / "archived"),
+            )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("NATIVE_SPAWN_MODEL_MISMATCH", result.stderr)
+        self.assertIn("NATIVE_SPAWN_FORK_MISMATCH", result.stderr)
 
     def test_execution_without_handshake_is_rejected(self) -> None:
         result = self.validate(
@@ -208,6 +306,7 @@ class CandidateEvidenceTests(unittest.TestCase):
                 "candidate_commit": "abc123",
                 "model": "gpt-5.6-terra",
                 "reviewer_thread_id": "reviewer-1",
+                "reviewer_turn_id": "reviewer-turn-1",
                 "implementation_thread_ids": ["implementation-1"],
                 "independence_verified": True,
                 "verdict": "TARGET_VERIFIED",
@@ -224,6 +323,298 @@ class CandidateEvidenceTests(unittest.TestCase):
         result = self.validate(manifest)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("CANDIDATE_EVIDENCE_MISMATCH", result.stderr)
+
+
+class CompletionGateTests(unittest.TestCase):
+    @staticmethod
+    def terminal_delivery_state(program_path: Path, candidate_path: Path) -> str:
+        return f"""\
+schema_version: "1.1"
+delivery_id: "delivery-1"
+status: GOAL_TARGET_VERIFIED
+controller:
+  role: terra_delivery
+  agent_id: "impl-thread"
+  lease_updated_at: "2026-07-23T00:00:00Z"
+program:
+  program_id: "program-1"
+  program_state_path: "{program_path}"
+  scope_assessment_path: "scope-assessment.yaml"
+  split_decision: single_goal
+  integration_status: not_required
+goal:
+  objective: "deliver"
+  status: complete
+  session_id: "program-thread"
+  worktree: "/tmp/worktree"
+  branch: "codex/test"
+  development_port: null
+artifacts:
+  prd_path: "spec.md"
+  prd_version: "1.0.0"
+  plan_path: "plan.md"
+  plan_version: "1.0.0"
+  tasks_path: "tasks.md"
+  tasks_version: "1.0.0"
+  verification_path: "verification.md"
+  verification_version: "1.0.0"
+target_identity: {{}}
+model_routing_log: "model-routing.jsonl"
+model_canary_status: passed
+model_handshake_status: passed
+agent_budget:
+  normal_target: 8
+  soft_limit: 12
+  hard_limit: 20
+  spawned_total: 2
+  max_nesting_depth: 1
+  max_parallel_goal_sessions: 3
+tasks: {{}}
+gates: {{}}
+checkpoints: []
+attempts: []
+active_agents: []
+progress:
+  implementation_completed: 1
+  implementation_total: 1
+  automation_completed: 1
+  automation_total: 1
+  exact_target_completed: 1
+  exact_target_total: 1
+  release_completed: 1
+  release_total: 1
+  current_activity: "complete"
+  remaining_p50_minutes: 0
+  remaining_p80_minutes: 0
+  last_progress_at: "2026-07-23T00:00:00Z"
+candidate:
+  commit: "abc123"
+  evidence_manifest: "{candidate_path}"
+  status: target_verified
+stage_user_journeys: []
+test_evidence:
+  baseline_manifest: "baseline.json"
+  impact_map: "impact.json"
+  evidence_index: "evidence.json"
+escalations: []
+decisions: []
+evidence: []
+stale_items: []
+next_actions: []
+created_at: "2026-07-23T00:00:00Z"
+updated_at: "2026-07-23T00:00:00Z"
+"""
+
+    @staticmethod
+    def complete_routing_records() -> list[dict[str, object]]:
+        records: list[dict[str, object]] = []
+        for short, model in (
+            ("sol", "gpt-5.6-sol"),
+            ("terra", "gpt-5.6-terra"),
+            ("luna", "gpt-5.6-luna"),
+        ):
+            for phase in ("initial", "followup"):
+                records.append(
+                    routing_record(
+                        f"canary-{short}-{phase}",
+                        "routing_canary",
+                        model,
+                        thread_id=f"canary-{short}",
+                        phase=phase,
+                    )
+                )
+        for index, model in enumerate(
+            (
+                "gpt-5.6-terra",
+                "gpt-5.6-luna",
+                "gpt-5.6-sol",
+                "gpt-5.6-terra",
+            ),
+            1,
+        ):
+            records.append(
+                routing_record(
+                    f"transition-{index}",
+                    "routing_transition",
+                    model,
+                    thread_id="transition-thread",
+                    phase="transition",
+                    sequence_index=index,
+                )
+            )
+        for thread_id, handshake_id, execution_id, task_class in (
+            ("impl-thread", "impl-handshake", "implementation-turn", "implementation"),
+            ("reviewer-1", "review-handshake", "reviewer-turn-1", "final_target_acceptance"),
+        ):
+            spawn_call_id = f"spawn-{thread_id}"
+            records.append(
+                routing_record(
+                    handshake_id,
+                    "routing_handshake",
+                    "gpt-5.6-terra",
+                    thread_id=thread_id,
+                    phase="handshake",
+                    write_allowed=False,
+                    routing_surface="native_subagent",
+                    model_selection_scope="context_creation",
+                    fork_turns="none",
+                    spawn_controller_thread_id="controller-thread",
+                    spawn_call_id=spawn_call_id,
+                )
+            )
+            extra: dict[str, object] = {"handshake_turn_id": handshake_id}
+            if task_class == "final_target_acceptance":
+                extra.update(
+                    implementation_thread_ids=["impl-thread"],
+                    independence_verified=True,
+                )
+            records.append(
+                routing_record(
+                    execution_id,
+                    task_class,
+                    "gpt-5.6-terra",
+                    thread_id=thread_id,
+                    **extra,
+                )
+            )
+        return records
+
+    def test_complete_raw_evidence_gate_passes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sessions = root / "sessions"
+            sessions.mkdir()
+            records = self.complete_routing_records()
+            routing = root / "model-routing.jsonl"
+            routing.write_text(
+                "".join(json.dumps(record) + "\n" for record in records),
+                encoding="utf-8",
+            )
+            by_thread: dict[str, list[dict[str, object]]] = {}
+            for record in records:
+                by_thread.setdefault(str(record["thread_id"]), []).append(record)
+            for thread_id, thread_records in by_thread.items():
+                rollout = sessions / f"rollout-{thread_id}.jsonl"
+                rollout.write_text(
+                    "".join(
+                        json.dumps(
+                            {
+                                "type": "turn_context",
+                                "payload": {
+                                    "turn_id": record["turn_id"],
+                                    "model": record["observed_model"],
+                                },
+                            }
+                        )
+                        + "\n"
+                        for record in thread_records
+                    ),
+                    encoding="utf-8",
+                )
+            spawn_events = [
+                {
+                    "type": "response_item",
+                    "payload": {
+                        "type": "function_call",
+                        "namespace": "collaboration",
+                        "name": "spawn_agent",
+                        "call_id": f"spawn-{thread_id}",
+                        "arguments": json.dumps(
+                            {
+                                "task_name": thread_id,
+                                "agent_type": "executor",
+                                "fork_turns": "none",
+                                "model": "gpt-5.6-terra",
+                            }
+                        ),
+                    },
+                }
+                for thread_id in ("impl-thread", "reviewer-1")
+            ]
+            (sessions / "rollout-controller-thread.jsonl").write_text(
+                "".join(json.dumps(event) + "\n" for event in spawn_events),
+                encoding="utf-8",
+            )
+            candidate_manifest = CandidateEvidenceTests.manifest()
+            candidate_manifest["final_acceptance"]["implementation_thread_ids"] = [
+                "impl-thread"
+            ]
+            candidate = root / "candidate-evidence.json"
+            candidate.write_text(json.dumps(candidate_manifest), encoding="utf-8")
+            program = root / "program-state.yaml"
+            program.write_text(ProgramLifecycleTests.complete_state(), encoding="utf-8")
+            delivery = root / "delivery-state.yaml"
+            delivery.write_text(
+                self.terminal_delivery_state(program, candidate),
+                encoding="utf-8",
+            )
+            result = run_script(
+                "scripts/validate_completion_gate.py",
+                "--routing-log",
+                str(routing),
+                "--delivery-state",
+                str(delivery),
+                "--candidate-evidence",
+                str(candidate),
+                "--program-state",
+                str(program),
+                "--sessions-root",
+                str(sessions),
+                "--archived-root",
+                str(root / "archived"),
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_declared_pass_cannot_replace_raw_runtime_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            routing = root / "model-routing.jsonl"
+            routing.write_text(
+                json.dumps(
+                    routing_record(
+                        "implementation-1",
+                        "implementation",
+                        "gpt-5.6-terra",
+                    )
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            delivery = root / "delivery-state.yaml"
+            delivery.write_text(
+                (
+                    PLUGIN_ROOT
+                    / "skills/goal-driven-delivery/assets/delivery-state-template.yaml"
+                ).read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            candidate = root / "candidate-evidence.json"
+            candidate.write_text(
+                json.dumps(CandidateEvidenceTests.manifest()),
+                encoding="utf-8",
+            )
+            program = root / "program-state.yaml"
+            program.write_text(
+                ProgramLifecycleTests.complete_state(),
+                encoding="utf-8",
+            )
+            result = run_script(
+                "scripts/validate_completion_gate.py",
+                "--routing-log",
+                str(routing),
+                "--delivery-state",
+                str(delivery),
+                "--candidate-evidence",
+                str(candidate),
+                "--program-state",
+                str(program),
+                "--sessions-root",
+                str(root / "sessions"),
+                "--archived-root",
+                str(root / "archived"),
+            )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("RUNTIME_TURN_NOT_FOUND", result.stderr)
 
 
 class TelemetryTests(unittest.TestCase):

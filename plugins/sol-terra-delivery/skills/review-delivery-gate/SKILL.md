@@ -47,4 +47,4 @@ Read these references completely:
 4. Return one verdict: `GATE_PASSED`, `REWORK_REQUIRED`, `PLAN_REVISED`, `PRODUCT_DECISION_REQUIRED`, `VERIFICATION_BLOCKED`, or `TARGET_VERIFIED`.
 5. Persist the verdict and evidence references in delivery state/decision log before Terra resumes.
 
-Only `TARGET_VERIFIED` on the pinned clean commit, valid model-routing records, and no remaining required work permits a single Goal to reach `GOAL_TARGET_VERIFIED`. For a multi-Goal Program, this is a milestone and cannot close the Program. Only an independent Terra final-acceptance thread may issue the final `TARGET_VERIFIED` verdict.
+Only `TARGET_VERIFIED` on the pinned clean commit, raw-runtime-validated model-routing records, and no remaining required work permits a single Goal to reach `GOAL_TARGET_VERIFIED`. For a multi-Goal Program, this is a milestone and cannot close the Program. Only an independent Terra final-acceptance thread may issue the final `TARGET_VERIFIED` verdict. Before runtime Program completion, require the plugin-root `scripts/validate_completion_gate.py` composite result; copied status fields and model labels are insufficient.

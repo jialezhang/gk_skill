@@ -1,6 +1,6 @@
 {
   "name": "sol-terra-delivery",
-  "version": "0.2.0+codex.20260723135323",
+  "version": "0.2.0+codex.20260723154943",
   "description": "Scope-sized product delivery with verified Sol planning, Terra execution and acceptance, Luna deterministic checks, persistent Program progress, and risk-driven evidence.",
   "author": {
     "name": "jialezhang"
@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "Sol Terra Delivery",
     "shortDescription": "Sol plans, Terra delivers and accepts, Luna checks.",
-    "longDescription": "Sizes approved work before planning, keeps one Program Goal across child milestones, verifies the actual model through a no-write handshake, runs risk-driven stage user journeys, reuses same-candidate evidence, and requires independent Terra final acceptance.",
+    "longDescription": "Sizes approved work before planning, keeps one Program Goal across child milestones, verifies native spawn arguments and actual per-turn models, runs risk-driven stage user journeys, reuses same-candidate evidence, and requires an independent Terra final acceptance plus a raw-evidence completion gate.",
     "developerName": "jialezhang",
     "category": "Productivity",
     "capabilities": [],

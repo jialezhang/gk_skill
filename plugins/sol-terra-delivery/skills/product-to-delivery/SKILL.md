@@ -13,6 +13,7 @@ Read these references completely before routing a stage:
 - [references/stage-routing.md](references/stage-routing.md)
 - [references/approval-protocol.md](references/approval-protocol.md)
 - [references/model-routing-contract.md](references/model-routing-contract.md)
+- [references/native-agent-routing.md](references/native-agent-routing.md)
 
 ## Route the current stage
 
@@ -25,10 +26,11 @@ Read these references completely before routing a stage:
 7. Stop after `PLAN_REVIEW_REQUIRED`. Continue only after explicit approval of the exact plan/tasks revisions.
 8. Run the Sol/Terra/Luna model-routing Canary before formal execution. Do not start implementation when actual per-turn routing is unverified.
 9. Create one runtime Program Goal and `program-state.yaml` before the first Goal starts. Keep it active across every milestone; do not complete or replace it when one Goal reaches `GOAL_TARGET_VERIFIED`.
-10. Invoke `$goal-driven-delivery` once per approved Goal. Each Goal receives its own visible session, worktree, branch, state, and checkpoint sequence. One program controller owns the cross-Goal dependency graph, fixed progress denominators, Agent budget, candidate evidence, and coordination-wait accounting.
+10. Invoke `$goal-driven-delivery` once per approved Goal. Keep one visible Program task by default; each Goal receives its own worktree, branch, state, checkpoint sequence, and internal model-routed context. Create another visible Codex task only when the required model is unavailable through native subagents, record `VISIBLE_MODEL_CONTEXT_REQUIRED`, and never use a task name as model evidence. One program controller owns the cross-Goal dependency graph, fixed progress denominators, Agent budget, candidate evidence, and coordination-wait accounting.
 11. When multiple Goals finish, invoke `$integrate-goals` to merge them in an integration worktree and verify a clean integration commit.
 12. Invoke `$review-delivery-gate` for evidence gates, final acceptance, and plan conflicts using the model-routing contract.
 13. If a PRD or plan revision invalidates approval, the current main agent returns to and completes the owning stage rather than patching around it or delegating the revision.
+14. Before Program completion, run `scripts/validate_completion_gate.py` from the plugin root against the exact routing log, Goal delivery state, candidate evidence, Program state, and optional integration manifest. Do not call the runtime completion tool unless this raw-evidence composite gate passes on the same candidate.
 
 ## Main-agent ownership
 
@@ -48,14 +50,16 @@ Never infer approval from silence, earlier discussion, or a model's confidence.
 
 ## Model routing
 
-Use explicit model selection on thread creation and on every follow-up turn:
+Use explicit model selection according to the routing surface:
 
 - product discovery, PRD, scope assessment, implementation planning, architecture/plan contradiction, and high-risk security judgment: `gpt-5.6-sol`;
 - delivery control, implementation, debugging, local rework, and integration: `gpt-5.6-terra`;
 - browser acceptance, 阶段真实用户旅程, runtime lifecycle acceptance, Provider-boundary acceptance, and final exact-target acceptance: `gpt-5.6-terra`;
 - focused checks, typecheck, build, diff checks, baseline comparison, checklist review, and deterministic evidence reconciliation: `gpt-5.6-luna`.
 
-Read actual `turn_context.payload.model` metadata from the runtime rollout after every turn. Append the thread/turn identity, explicit-request fact, requested model, runtime-observed model, observation source, phase, and verification status to `model-routing.jsonl`. Validate the log against the raw rollout rather than trusting its copied `observed_model`. A mismatch returns `MODEL_ROUTE_MISMATCH`, invalidates that turn's output as delivery evidence, and stops dependent work. Never accept an agent name, prompt claim, UI label, or self-report as model evidence.
+For native subagents, select the model at context creation with `fork_turns: "none"` or a positive limited-history value. Full-history forks inherit the parent model and are forbidden for model overrides. When the follow-up API has no model parameter, reuse only the verified context and validate its actual model after every turn. On surfaces that support per-turn selection, pass the model explicitly every turn.
+
+Read actual `turn_context.payload.model` metadata from the runtime rollout after every turn. Append the thread/turn identity, routing surface, model-selection scope, fork mode when applicable, explicit-request fact, requested model, runtime-observed model, observation source, phase, and verification status to `model-routing.jsonl`. Validate the log against the raw rollout rather than trusting its copied `observed_model`. A mismatch returns `MODEL_ROUTE_MISMATCH`, invalidates that turn's output as delivery evidence, and stops dependent work. Never accept an Agent name, `agent_type`, prompt claim, UI label, or self-report as model evidence.
 
 The live Canary requires an initial and an explicit-model follow-up turn for each model, plus the same-thread sequence Terra → Luna → Sol → Terra. Every new execution or acceptance context must then pass a no-write routing handshake before receiving an execution packet. A missing handshake, unknown task class, unavailable rollout turn, or implicit model request blocks formal execution.
 

@@ -21,6 +21,8 @@ REQUIRED = {
     "candidate_evidence_valid",
     "final_acceptance_model",
     "final_acceptance_thread_id",
+    "final_acceptance_turn_id",
+    "model_routing_log",
     "implementation_thread_ids",
     "final_acceptance_independent",
     "final_acceptance",
@@ -82,6 +84,8 @@ def main() -> int:
         if data.get("final_acceptance_model") != "gpt-5.6-terra":
             errors.append("TERRA_FINAL_ACCEPTANCE_REQUIRED")
         acceptance_thread = data.get("final_acceptance_thread_id")
+        acceptance_turn = data.get("final_acceptance_turn_id")
+        routing_log = data.get("model_routing_log")
         implementation_threads = data.get("implementation_thread_ids")
         if not isinstance(implementation_threads, list) or not implementation_threads:
             errors.append("implementation_thread_ids must be a non-empty list")
@@ -91,6 +95,10 @@ def main() -> int:
             errors.append("FINAL_ACCEPTANCE_NOT_INDEPENDENT")
         if data.get("final_acceptance_independent") is not True:
             errors.append("final acceptance independence has not validated")
+        if not acceptance_turn:
+            errors.append("final_acceptance_turn_id is required")
+        if not routing_log:
+            errors.append("model_routing_log is required")
         if data.get("final_acceptance") != "TARGET_VERIFIED":
             errors.append("final_acceptance must be TARGET_VERIFIED")
 

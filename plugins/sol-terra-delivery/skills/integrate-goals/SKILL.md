@@ -8,10 +8,11 @@ description: Use when two or more approved Goal branches must be combined, verif
 Combine only committed Goal outputs. Integration is a Terra implementation task, Luna deterministic checking, and independent Terra final acceptance; it is not a second planning stage.
 
 Read [references/integration-contract.md](references/integration-contract.md) completely.
+Read [../product-to-delivery/references/native-agent-routing.md](../product-to-delivery/references/native-agent-routing.md) completely.
 
 ## Preconditions
 
-Require every Goal to provide a pushed clean commit, `TARGET_VERIFIED` evidence for its bounded outcome, a valid `model-routing.jsonl`, checkpoint reports, and known deviations. Return `GOAL_INTEGRATION_NOT_READY` if any Goal is missing them.
+Require every Goal to provide a pushed clean commit, `TARGET_VERIFIED` evidence for its bounded outcome, a runtime-validated `model-routing.jsonl`, checkpoint reports, and known deviations. Before integration work, create or reuse a Terra context that has passed a no-write handshake with valid native routing configuration. Return `GOAL_INTEGRATION_NOT_READY` if any Goal or route is missing them.
 
 ## Integrate
 
@@ -29,4 +30,4 @@ Validate with:
 python3 scripts/validate_integration_manifest.py <program-integration.json>
 ```
 
-Program completion requires independent Terra `TARGET_VERIFIED`, a clean pushed integration commit, no required Goal or release work remaining for the declared completion scope, and a passing `program-state.yaml` validation. Goal-level verification never completes the Program.
+Program completion requires independent Terra `TARGET_VERIFIED`, a clean pushed integration commit, no required Goal or release work remaining for the declared completion scope, and a passing `scripts/validate_completion_gate.py` run that includes this integration manifest and raw runtime model evidence. Goal-level verification or declared routing booleans never complete the Program.
