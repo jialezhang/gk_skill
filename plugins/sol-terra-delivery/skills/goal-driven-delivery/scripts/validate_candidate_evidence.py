@@ -99,8 +99,9 @@ def main() -> int:
             if acceptance.get("model") != "gpt-5.6-terra":
                 errors.append("TERRA_FINAL_ACCEPTANCE_REQUIRED")
             reviewer = acceptance.get("reviewer_thread_id")
+            reviewer_turn = acceptance.get("reviewer_turn_id")
             implementers = acceptance.get("implementation_thread_ids")
-            if not reviewer or not isinstance(implementers, list) or not implementers:
+            if not reviewer or not reviewer_turn or not isinstance(implementers, list) or not implementers:
                 errors.append("final acceptance identity is incomplete")
             elif reviewer in implementers:
                 errors.append("FINAL_ACCEPTANCE_NOT_INDEPENDENT")

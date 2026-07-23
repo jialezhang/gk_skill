@@ -14,6 +14,7 @@ Read these references completely before starting:
 - [references/verification-loop.md](references/verification-loop.md)
 - [references/checkpoint-contract.md](references/checkpoint-contract.md)
 - [references/candidate-evidence-contract.md](references/candidate-evidence-contract.md)
+- [../product-to-delivery/references/native-agent-routing.md](../product-to-delivery/references/native-agent-routing.md)
 
 ## Preconditions
 
@@ -31,12 +32,12 @@ Return `DELIVERY_NOT_READY` if any condition is missing. Do not repair approval 
 
 ## Start
 
-1. Create or resume one visible session for this approved Goal. Do not set a token budget unless the user explicitly supplied one.
+1. Use the current visible Program task for a single Goal. For multiple Goals, keep Goal execution contexts internal by default and create another visible task only when the required model is unavailable on the native subagent surface. Record the exception as `VISIBLE_MODEL_CONTEXT_REQUIRED`. Do not set a token budget unless the user explicitly supplied one.
 2. Use a dedicated worktree and branch for the Goal. Allocate an isolated development port/browser context when runtime verification is required; do not claim another Goal's runtime as exact-target evidence.
 3. Run preflight: verify clean artifact revisions, repository target, worktree/branch, ports, rollback, verification commands, protected-data boundaries, program Agent budget, and absence of a second controller for this Goal.
 4. Require the active Program Goal and validated `program-state.yaml`; register this Goal as a milestone before initializing its state.
 5. Initialize `delivery-state.yaml` from [assets/delivery-state-template.yaml](assets/delivery-state-template.yaml), pin artifact/scope revisions, and register every task, gate, checkpoint, Goal session, worktree, candidate manifest, progress denominator, and model-routing log before spawning work.
-6. If the current agent is not the configured Terra controller, create one persistent Terra implementation context. Pass `gpt-5.6-terra` explicitly at creation and on every follow-up turn. Send a no-write routing handshake first; inspect `turn_context.payload.model`, record it, and only then send the execution packet. Fail closed and quarantine the turn on mismatch.
+6. If the current agent is not the configured Terra controller, create one persistent Terra implementation context with explicit `gpt-5.6-terra` and `fork_turns: "none"` or a positive limited-history value. Never use a full-history fork for a model override. Send a no-write routing handshake first; inspect `turn_context.payload.model`, record it, and only then send the execution packet. If the follow-up surface cannot accept a model parameter, reuse only this verified context and validate every follow-up runtime turn. Fail closed and quarantine the turn on mismatch.
 
 ## Agent budget
 
@@ -79,4 +80,4 @@ The program owns one cumulative budget across all Goals: normal target 8, soft l
 
 For a multi-Goal Program, mark this milestone `GOAL_TARGET_VERIFIED` only after the exact clean commit, required 阶段真实用户旅程, every checkpoint, model routing, candidate evidence, and fixed progress denominators validate. Do not call the runtime Goal completion tool.
 
-Only the Program controller may mark the runtime Program Goal complete, after `$integrate-goals`, independent Terra final acceptance, completion-scope reconciliation, and `validate_program_state.py` all pass. A single-Goal delivery follows the same Program completion gate without an integration merge.
+Only the Program controller may mark the runtime Program Goal complete. Immediately before that transition, run `scripts/validate_completion_gate.py` from the plugin root with the routing log, Goal delivery state, candidate evidence, and Program state; include the integration manifest for a multi-Goal Program. This composite gate must validate the raw rollout with Canary, transition, handshake, and runtime-evidence requirements. A declared `model_canary_status`, `model_handshake_status`, model name, or `model_routing_valid` boolean never substitutes for the composite gate. A single-Goal delivery follows the same Program completion gate without an integration manifest.

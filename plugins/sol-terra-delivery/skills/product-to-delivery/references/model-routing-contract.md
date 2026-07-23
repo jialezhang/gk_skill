@@ -7,14 +7,21 @@ Thread names and agent roles do not prove model identity. The controller must:
 1. create a no-write handshake turn with the explicit required model before assigning work;
 2. inspect `rollout.turn_context.payload.model` for that handshake;
 3. permit work only when requested and observed models match;
-4. pass the explicit model again on every execution and follow-up turn;
+4. on surfaces with per-turn model selection, pass the explicit model on every execution and
+   follow-up turn; on native subagents without that parameter, reuse only the explicitly created,
+   verified context and validate every runtime turn;
 5. append immutable handshake and execution records to `model-routing.jsonl`;
 6. quarantine all output after a missing or mismatched route until the work is rerun on the required model.
+
+Read [native-agent-routing.md](native-agent-routing.md) completely before using Codex native
+subagents. Native model overrides require `fork_turns: "none"` or a positive limited-history
+value. A full-history fork, Agent name, `agent_type`, role, prompt, or UI label is not model
+selection.
 
 Required handshake record:
 
 ```json
-{"thread_id":"...","turn_id":"handshake-...","task_class":"routing_handshake","requested_model":"gpt-5.6-terra","request_explicit":true,"observed_model":"gpt-5.6-terra","observed_source":"rollout.turn_context.payload.model","phase":"handshake","verified":true,"allowed_reason":"routing_canary","write_allowed":false}
+{"thread_id":"...","turn_id":"handshake-...","task_class":"routing_handshake","routing_surface":"native_subagent","model_selection_scope":"context_creation","fork_turns":"none","spawn_controller_thread_id":"...","spawn_call_id":"...","requested_model":"gpt-5.6-terra","request_explicit":true,"observed_model":"gpt-5.6-terra","observed_source":"rollout.turn_context.payload.model","phase":"handshake","verified":true,"allowed_reason":"routing_canary","write_allowed":false}
 ```
 
 Required execution record:
@@ -31,7 +38,7 @@ python3 scripts/validate_model_routing.py <model-routing.jsonl> \
   --require-runtime-evidence
 ```
 
-Run the command from the plugin root. The validator locates the rollout by `thread_id`, matches `turn_id`, and reads every matching `turn_context.payload.model`. The copied `observed_model` is not authoritative. Missing, ambiguous, or mismatched runtime evidence fails validation. A rejected record cannot support a gate or completion claim.
+Run the command from the plugin root. The validator locates the rollout by `thread_id`, matches `turn_id`, and reads every matching `turn_context.payload.model`. For native handshakes it also locates the original controller `spawn_agent` call by `spawn_controller_thread_id` and `spawn_call_id`, then verifies the actual `model` and `fork_turns` arguments. Copied routing fields are not authoritative. Missing, ambiguous, or mismatched runtime evidence fails validation. A rejected record cannot support a gate or completion claim.
 
 ## Live Canary
 

@@ -64,6 +64,8 @@ LUNA_TASKS = {
 ROUTING_TASKS = {"routing_canary", "routing_transition", "routing_handshake"}
 KNOWN_TASKS = SOL_TASKS | TERRA_TASKS | LUNA_TASKS | ROUTING_TASKS
 CANARY_PHASES = {"initial", "followup"}
+ROUTING_SURFACES = {"main_agent", "native_subagent", "codex_task"}
+MODEL_SELECTION_SCOPES = {"turn", "context_creation"}
 TRANSITION_MODELS = [
     "gpt-5.6-terra",
     "gpt-5.6-luna",
@@ -102,6 +104,46 @@ def runtime_models(thread_id: str, turn_id: str, roots: list[Path]) -> tuple[set
         if matched:
             sources.append(path)
     return models, sources
+
+
+def runtime_spawn_arguments(
+    controller_thread_id: str,
+    spawn_call_id: str,
+    roots: list[Path],
+) -> tuple[list[dict[str, object]], list[Path]]:
+    matches: list[dict[str, object]] = []
+    sources: list[Path] = []
+    for path in rollout_files(controller_thread_id, roots):
+        matched = False
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            try:
+                event = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            if event.get("type") != "response_item":
+                continue
+            payload = event.get("payload")
+            if (
+                not isinstance(payload, dict)
+                or payload.get("type") != "function_call"
+                or payload.get("namespace") != "collaboration"
+                or payload.get("name") != "spawn_agent"
+                or payload.get("call_id") != spawn_call_id
+            ):
+                continue
+            arguments = payload.get("arguments")
+            if not isinstance(arguments, str):
+                continue
+            try:
+                decoded = json.loads(arguments)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(decoded, dict):
+                matches.append(decoded)
+                matched = True
+        if matched:
+            sources.append(path)
+    return matches, sources
 
 
 def main() -> int:
@@ -151,6 +193,11 @@ def main() -> int:
         verified = record.get("verified")
         reason = record.get("allowed_reason")
         write_allowed = record.get("write_allowed")
+        routing_surface = record.get("routing_surface")
+        model_selection_scope = record.get("model_selection_scope")
+        fork_turns = record.get("fork_turns")
+        spawn_controller_thread_id = record.get("spawn_controller_thread_id")
+        spawn_call_id = record.get("spawn_call_id")
 
         if not isinstance(thread_id, str) or not thread_id:
             errors.append(f"line {line_number}: missing thread_id")
@@ -203,12 +250,45 @@ def main() -> int:
                 errors.append(f"line {line_number}: HANDSHAKE_MUST_BE_READ_ONLY")
             if phase != "handshake":
                 errors.append(f"line {line_number}: HANDSHAKE_PHASE_REQUIRED")
+            if routing_surface not in ROUTING_SURFACES:
+                errors.append(
+                    f"line {line_number}: ROUTING_SURFACE_REQUIRED: {routing_surface!r}"
+                )
+            if model_selection_scope not in MODEL_SELECTION_SCOPES:
+                errors.append(
+                    f"line {line_number}: MODEL_SELECTION_SCOPE_REQUIRED: "
+                    f"{model_selection_scope!r}"
+                )
+            native_config_valid = True
+            if routing_surface == "native_subagent":
+                if model_selection_scope != "context_creation":
+                    errors.append(
+                        f"line {line_number}: NATIVE_MODEL_MUST_BE_SELECTED_AT_CONTEXT_CREATION"
+                    )
+                    native_config_valid = False
+                if fork_turns == "all" or fork_turns is None:
+                    errors.append(
+                        f"line {line_number}: NATIVE_FULL_HISTORY_MODEL_OVERRIDE_FORBIDDEN"
+                    )
+                    native_config_valid = False
+                elif fork_turns != "none" and not (
+                    isinstance(fork_turns, str)
+                    and fork_turns.isdigit()
+                    and int(fork_turns) > 0
+                ):
+                    errors.append(
+                        f"line {line_number}: INVALID_NATIVE_FORK_TURNS: {fork_turns!r}"
+                    )
+                    native_config_valid = False
             if (
                 isinstance(turn_id, str)
                 and isinstance(thread_id, str)
                 and isinstance(requested, str)
                 and requested == observed
                 and verified is True
+                and routing_surface in ROUTING_SURFACES
+                and model_selection_scope in MODEL_SELECTION_SCOPES
+                and native_config_valid
             ):
                 valid_handshakes[turn_id] = (thread_id, requested)
         elif task_class in SOL_TASKS | TERRA_TASKS | LUNA_TASKS:
@@ -248,6 +328,45 @@ def main() -> int:
                         f"line {line_number}: RUNTIME_MODEL_MISMATCH "
                         f"requested={requested!r} logged={observed!r} runtime={actual!r}"
                     )
+            if task_class == "routing_handshake" and routing_surface == "native_subagent":
+                if (
+                    not isinstance(spawn_controller_thread_id, str)
+                    or not spawn_controller_thread_id
+                    or not isinstance(spawn_call_id, str)
+                    or not spawn_call_id
+                ):
+                    errors.append(
+                        f"line {line_number}: NATIVE_SPAWN_RUNTIME_IDENTITY_REQUIRED"
+                    )
+                else:
+                    spawn_arguments, spawn_sources = runtime_spawn_arguments(
+                        spawn_controller_thread_id,
+                        spawn_call_id,
+                        roots,
+                    )
+                    if not spawn_arguments:
+                        errors.append(
+                            f"line {line_number}: NATIVE_SPAWN_CALL_NOT_FOUND "
+                            f"controller={spawn_controller_thread_id!r} call={spawn_call_id!r}"
+                        )
+                    elif len(spawn_arguments) != 1:
+                        errors.append(
+                            f"line {line_number}: NATIVE_SPAWN_CALL_AMBIGUOUS "
+                            f"matches={len(spawn_arguments)}"
+                        )
+                    else:
+                        runtime_spawn = spawn_arguments[0]
+                        runtime_source_count += len(spawn_sources)
+                        if runtime_spawn.get("model") != requested:
+                            errors.append(
+                                f"line {line_number}: NATIVE_SPAWN_MODEL_MISMATCH "
+                                f"requested={requested!r} runtime={runtime_spawn.get('model')!r}"
+                            )
+                        if runtime_spawn.get("fork_turns") != fork_turns:
+                            errors.append(
+                                f"line {line_number}: NATIVE_SPAWN_FORK_MISMATCH "
+                                f"logged={fork_turns!r} runtime={runtime_spawn.get('fork_turns')!r}"
+                            )
 
     if args.require_handshake:
         for line_number, record in pending_execution_records:
