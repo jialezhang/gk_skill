@@ -146,11 +146,24 @@ def main() -> int:
         ],
         [
             sys.executable,
+            str(skill_root / "product-to-delivery" / "scripts" / "validate_program_state.py"),
+            str(skill_root / "product-to-delivery" / "assets" / "program-state-template.yaml"),
+            "--allow-empty",
+        ],
+        [
+            sys.executable,
+            str(skill_root / "goal-driven-delivery" / "scripts" / "validate_candidate_evidence.py"),
+            str(skill_root / "goal-driven-delivery" / "assets" / "candidate-evidence-template.json"),
+            "--allow-incomplete",
+        ],
+        [
+            sys.executable,
             str(skill_root / "integrate-goals" / "scripts" / "validate_integration_manifest.py"),
             str(skill_root / "integrate-goals" / "assets" / "program-integration-template.json"),
             "--allow-empty",
         ],
         [sys.executable, str(plugin_root / "tests" / "test_delivery_policy.py")],
+        [sys.executable, str(plugin_root / "tests" / "test_delivery_policy_v2.py")],
     ]
     for command in checks:
         result = subprocess.run(command, text=True, capture_output=True)

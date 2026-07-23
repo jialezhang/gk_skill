@@ -26,6 +26,33 @@ Verify the production route reconciles the authoritative running state after rec
 - Forbidden substitutions: fixture-only route
 - Failure routing: T-001
 
+## Execution Scenario Coverage
+
+### SC-001: Observe one real running task
+
+- Proves: AC-001
+- Stage: 阶段真实用户旅程
+- Exact target: production route
+- Provider mode: not_applicable
+- Provider budget/call limit: not_applicable
+- Actions: open the task and observe status
+- Evidence paths: evidence/T-001
+- Invalidation keys: commit, build, route
+- Matrix type: representative
+- Interaction risk: not_applicable
+- Pairwise insufficient because: not_applicable
+- Estimated executions: 1
+- Budget: not_applicable
+
+## Candidate Evidence Policy
+
+- Candidate commit/build: frozen before full verification
+- Full-suite trigger: candidate freeze
+- Same-candidate evidence index: evidence/index.json
+- Evidence reuse rule: reuse until invalidation key changes
+- Invalidation keys: commit, build, route
+- Independent Terra final-acceptance thread: required
+
 ## Gate Matrix
 
 | Gate | Evidence | Status |

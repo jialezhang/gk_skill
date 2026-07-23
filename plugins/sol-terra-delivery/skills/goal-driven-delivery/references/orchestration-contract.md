@@ -2,7 +2,7 @@
 
 ## Single runtime owner
 
-The program controller owns cross-Goal dependencies, cumulative Agent budget, and integration readiness. Each Terra Goal controller owns only its Goal's live state. Spec Kit artifacts are durable baselines, not a second scheduler. Sol reviewers may revise plans and issue verdicts but do not dispatch implementation while Terra is active.
+The program controller owns cross-Goal dependencies, cumulative Agent budget, and integration readiness. Each Terra Goal controller owns only its Goal's live state. Spec Kit artifacts are durable baselines, not a second scheduler. Only the current main agent may revise PRDs or plans in its Sol stage; reviewers and Terra controllers return evidence to it and do not dispatch implementation while a revision is active.
 
 ## Role routing
 
@@ -12,12 +12,15 @@ The program controller owns cross-Goal dependencies, cumulative Agent budget, an
 | Frontend implementation | `frontend_executor` | `gpt-5.6-terra` / high |
 | Backend implementation | `backend_executor` | `gpt-5.6-terra` / high |
 | Data/migration implementation | `data_executor` | `gpt-5.6-terra` / high |
-| Focused debugging | `debugger` | configured standard model / high |
-| Routine test execution and verification | `luna_verifier` | `gpt-5.6-luna` / medium or high |
-| Routine final acceptance | `luna_acceptance` | `gpt-5.6-luna` / high |
+| Focused debugging | `debugger` | `gpt-5.6-terra` / high |
+| Deterministic test/build/checklist execution | `luna_verifier` | `gpt-5.6-luna` / medium or high |
+| Browser, lifecycle, Provider, and stage journey acceptance | `terra_acceptance` | `gpt-5.6-terra` / high |
+| Final exact-target acceptance | `terra_final_acceptance` | `gpt-5.6-terra` / high |
 | Plan/architecture/security escalation | `sol_planner` / `sol_reviewer` | `gpt-5.6-sol` / high; xhigh only when justified |
 
 Model identity is a runtime contract. Pass the explicit model on every turn and verify observed metadata; a role name is not evidence.
+
+Every new model context starts with a no-write routing handshake. Do not send repository-write authority or the execution packet until runtime metadata proves the requested model. A mismatch invalidates the turn, quarantines any output as diagnostic only, and requires a new handshake.
 
 ## Program budget
 
@@ -48,7 +51,7 @@ recommended_review:
 
 ## Revision invalidation
 
-When Sol changes a consumed contract, mark affected pending and completed-but-unverified attempts `stale`, record the new plan revision, and rerun only the evidence invalidated by the change. Do not erase prior evidence.
+When the current main agent changes a consumed contract in its Sol planning stage, mark affected pending and completed-but-unverified attempts `stale`, record the new plan revision, and rerun only the evidence invalidated by the change. Do not erase prior evidence.
 
 ## Retry policy
 

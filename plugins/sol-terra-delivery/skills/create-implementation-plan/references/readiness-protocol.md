@@ -17,7 +17,7 @@
 - authoritative data and identity path;
 - runtime lifecycle and state-convergence map when work can outlive an interaction, request, connection, process, or page;
 - compatibility and migration obligations;
-- first realistic vertical slice;
+- first 阶段真实用户旅程;
 - falsifiers, stop actions, and recovery owner.
 
 ## Rewrite challenge

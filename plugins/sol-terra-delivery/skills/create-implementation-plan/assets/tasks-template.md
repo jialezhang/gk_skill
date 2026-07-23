@@ -26,9 +26,14 @@ plan_version: 0.1.0
 - **Acceptance:**
   - [ ]
 - **Verification:**
-  - focused:
-  - integration:
-  - exact-target handoff:
+  - test_level: fast | change | full
+  - risk and impact surface:
+  - focused/change commands:
+  - full-run reason: not_applicable | [why fast/change is insufficient]
+  - Provider mode: mock | sandbox | real_free | real_expensive | not_applicable
+  - Provider budget/call limit: not_applicable | [budget and maximum calls]
+  - evidence invalidation keys:
+  - 阶段真实用户旅程/ exact-target handoff:
 - **Candidate touchpoints (non-binding):**
 - **Lifecycle/state obligations (when applicable):** identities, authoritative status owner, correlation/order keys, subscription/reconciliation behavior, convergence bound, and fault cases
 - **Rollback/disable:**

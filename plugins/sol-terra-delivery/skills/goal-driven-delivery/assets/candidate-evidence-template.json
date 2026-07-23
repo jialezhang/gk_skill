@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "program_id": "",
+  "candidate_commit": "",
+  "production_fingerprint": "",
+  "exact_target": {},
+  "status": "collecting",
+  "acceptance_claims": [],
+  "execution_scenarios": [],
+  "invalidations": [],
+  "full_verification": {
+    "candidate_commit": "",
+    "passed": false,
+    "evidence_path": ""
+  },
+  "final_acceptance": {
+    "candidate_commit": "",
+    "model": "gpt-5.6-terra",
+    "reviewer_thread_id": "",
+    "implementation_thread_ids": [],
+    "independence_verified": false,
+    "verdict": "pending"
+  }
+}

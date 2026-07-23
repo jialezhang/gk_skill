@@ -36,7 +36,7 @@ The existing task state remains authoritative.
 ## Runtime Lifecycle and State Convergence
 The existing task state remains authoritative; interaction completion cannot terminate observation, and the production route must reconcile from its snapshot after an event gap.
 
-## First Realistic Vertical Slice
+## 阶段真实用户旅程
 Render one real running task on the production route.
 
 ## Complete Milestone Baseline
@@ -49,7 +49,7 @@ T-001 → G-001.
 T-001 is assigned to frontend_executor.
 
 ## Verification Strategy
-Focused render test plus AC-001.
+Use `test:fast` while editing, `test:change` for SC-001, and one `test:full` on the frozen candidate. SC-001 proves AC-001; evidence is reused until candidate or target identity changes.
 
 ## Plan Review Record
 Independent review pending before approval.

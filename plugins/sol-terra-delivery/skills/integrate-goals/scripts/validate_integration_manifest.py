@@ -13,10 +13,16 @@ REQUIRED = {
     "schema_version",
     "program_id",
     "base_commit",
+    "program_state_valid",
     "goals",
     "integration_commit",
     "clean_worktree",
     "full_verification_passed",
+    "candidate_evidence_valid",
+    "final_acceptance_model",
+    "final_acceptance_thread_id",
+    "implementation_thread_ids",
+    "final_acceptance_independent",
     "final_acceptance",
 }
 
@@ -69,6 +75,22 @@ def main() -> int:
             errors.append("integration worktree is not clean")
         if data.get("full_verification_passed") is not True:
             errors.append("full integration verification has not passed")
+        if data.get("program_state_valid") is not True:
+            errors.append("program_state has not validated")
+        if data.get("candidate_evidence_valid") is not True:
+            errors.append("candidate evidence has not validated")
+        if data.get("final_acceptance_model") != "gpt-5.6-terra":
+            errors.append("TERRA_FINAL_ACCEPTANCE_REQUIRED")
+        acceptance_thread = data.get("final_acceptance_thread_id")
+        implementation_threads = data.get("implementation_thread_ids")
+        if not isinstance(implementation_threads, list) or not implementation_threads:
+            errors.append("implementation_thread_ids must be a non-empty list")
+        elif not acceptance_thread:
+            errors.append("final_acceptance_thread_id is required")
+        elif acceptance_thread in implementation_threads:
+            errors.append("FINAL_ACCEPTANCE_NOT_INDEPENDENT")
+        if data.get("final_acceptance_independent") is not True:
+            errors.append("final acceptance independence has not validated")
         if data.get("final_acceptance") != "TARGET_VERIFIED":
             errors.append("final_acceptance must be TARGET_VERIFIED")
 

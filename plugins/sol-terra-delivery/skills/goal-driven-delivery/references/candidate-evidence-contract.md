@@ -1,0 +1,50 @@
+# 候选版本与测试证据合同
+
+## 固定产物
+
+每个 Program 维护以下机器可读产物：
+
+- `baseline-verification.json`：改动前通过项、既有失败和目标身份；
+- `test-impact-map.json`：变更文件/合同、风险、受影响场景和所需测试档位；
+- `test-evidence-index.json`：每次执行的命令、结果、模型、耗时、token、候选版本和原始证据；
+- `candidate-evidence.json`：同一候选版本的验收声明、执行场景、完整回归和独立 Terra 最终验收。
+
+使用同目录 `assets/` 中的模板初始化。候选完成前运行：
+
+```bash
+python3 scripts/validate_candidate_evidence.py <candidate-evidence.json>
+```
+
+## 基线和影响分析
+
+首次编辑前运行足以识别已有失败的最小基线，并记录 commit、build、入口、Flags、Provider 配置和数据库/fixture 指纹。每次改动后更新影响图，不依据“改了几个文件”猜测试范围。
+
+影响图至少回答：
+
+- 哪些产品声明和执行场景可能失效；
+- 是否改变共享运行时、状态生命周期、Provider 边界或持久化；
+- 当前应运行 `fast`、`change` 还是 `full`；
+- 既有证据的哪些失效键发生变化。
+
+## 证据索引和复用
+
+一项通过证据只在以下条件同时满足时可复用：
+
+- `candidate_commit`、build 和 exact target 一致；
+- 所有声明的失效键未变化；
+- 原始日志、截图或报告仍可读取；
+- Provider 模式满足该声明；
+- 运行模型符合角色合同。
+
+模型或 reviewer 变化本身不使证据失效。Reviewer 先对账索引，再只运行缺失或已失效的场景。
+
+## 候选冻结与最终验收
+
+只有在计划内实现完成、阶段真实用户旅程通过且无未解决失效项时，才能冻结候选。完整回归和构建绑定该 commit；候选有代码或配置变更后，必须重新判断影响，不能沿用旧候选的完成结论。
+
+独立 Terra 最终验收消费原始证据并运行仍需人类交互判断的关键场景。其线程不得属于 `implementation_thread_ids`。最终 `TARGET_VERIFIED` 需要：
+
+- 每个 `AC-*` 被至少一个已通过的同候选 `SC-*` 覆盖；
+- 完整回归在同一候选通过；
+- 无未解决失效；
+- Terra 最终验收模型和线程独立性可验证。

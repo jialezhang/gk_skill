@@ -6,7 +6,7 @@ Checkpoint after each independently runnable vertical slice, approved milestone,
 
 ## Required sequence
 
-1. Run the slice's focused checks, relevant type/static checks, and diff check.
+1. Run the slice's `fast` checks plus only the `change` checks required by the current impact map. Do not run `full` regression or rebuild merely because a checkpoint exists.
 2. Inspect protected-data boundaries and confirm no unrelated user changes are staged.
 3. Commit only owned files with repository-required decision trailers.
 4. Push the Goal branch and verify the remote commit.
@@ -24,3 +24,11 @@ Required progress report fields:
 - current work, P50/P80 remaining estimate, blockers, and next checkpoint.
 
 Final acceptance runs only on a clean committed tree. Dirty-worktree evidence is diagnostic, not release evidence.
+
+## Progress continuity
+
+Persist progress after every task/gate transition and at least every 15 minutes while work is active. Report user-visible progress at checkpoints and at least every 30 minutes during long stages. Progress must use the four fixed denominators from delivery state; do not hide progress by replacing totals with a narrative status.
+
+## Evidence reuse
+
+Record every check in `test-evidence-index.json`. A reviewer or later stage consumes valid same-candidate evidence and runs only uncovered or invalidated checks. A new reviewer, retry, or model switch does not by itself justify repeating a full suite or build.

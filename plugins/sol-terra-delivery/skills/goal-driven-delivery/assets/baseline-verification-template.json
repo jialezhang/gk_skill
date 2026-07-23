@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "program_id": "",
+  "captured_at": "",
+  "commit_sha": "",
+  "build_fingerprint": "",
+  "exact_target": {},
+  "feature_flags": {},
+  "provider_configuration": {},
+  "data_fingerprint": "",
+  "checks": [],
+  "known_preexisting_failures": []
+}

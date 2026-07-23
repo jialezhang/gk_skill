@@ -42,16 +42,26 @@ TERRA_TASKS = {
     "debugging",
     "local_rework",
     "integration",
+    "code_quality_review",
+    "browser_acceptance",
+    "browser_e2e",
+    "stage_user_journey",
+    "runtime_lifecycle_acceptance",
+    "provider_boundary_acceptance",
+    "routine_final_acceptance",
+    "final_target_acceptance",
 }
 LUNA_TASKS = {
     "focused_tests",
+    "typecheck",
     "build_check",
+    "diff_check",
+    "baseline_compare",
     "checklist_review",
-    "browser_e2e",
+    "evidence_reconciliation",
     "routine_verification",
-    "routine_final_acceptance",
 }
-ROUTING_TASKS = {"routing_canary", "routing_transition"}
+ROUTING_TASKS = {"routing_canary", "routing_transition", "routing_handshake"}
 KNOWN_TASKS = SOL_TASKS | TERRA_TASKS | LUNA_TASKS | ROUTING_TASKS
 CANARY_PHASES = {"initial", "followup"}
 TRANSITION_MODELS = [
@@ -99,6 +109,7 @@ def main() -> int:
     parser.add_argument("routing_log", type=Path)
     parser.add_argument("--require-canary", action="store_true")
     parser.add_argument("--require-transition-canary", action="store_true")
+    parser.add_argument("--require-handshake", action="store_true")
     parser.add_argument("--require-runtime-evidence", action="store_true")
     parser.add_argument("--sessions-root", type=Path, default=Path.home() / ".codex" / "sessions")
     parser.add_argument(
@@ -116,6 +127,8 @@ def main() -> int:
     seen_turns: set[str] = set()
     canary_phases: set[tuple[str, str]] = set()
     transitions: dict[int, tuple[str, str]] = {}
+    valid_handshakes: dict[str, tuple[str, str]] = {}
+    pending_execution_records: list[tuple[int, dict[str, object]]] = []
     runtime_source_count = 0
     roots = [args.sessions_root, args.archived_root]
     for line_number, raw in enumerate(args.routing_log.read_text(encoding="utf-8").splitlines(), 1):
@@ -137,6 +150,7 @@ def main() -> int:
         phase = record.get("phase")
         verified = record.get("verified")
         reason = record.get("allowed_reason")
+        write_allowed = record.get("write_allowed")
 
         if not isinstance(thread_id, str) or not thread_id:
             errors.append(f"line {line_number}: missing thread_id")
@@ -184,6 +198,37 @@ def main() -> int:
                 errors.append(f"line {line_number}: duplicate transition sequence_index: {sequence_index}")
             elif isinstance(thread_id, str) and isinstance(requested, str):
                 transitions[sequence_index] = (thread_id, requested)
+        if task_class == "routing_handshake":
+            if write_allowed is not False:
+                errors.append(f"line {line_number}: HANDSHAKE_MUST_BE_READ_ONLY")
+            if phase != "handshake":
+                errors.append(f"line {line_number}: HANDSHAKE_PHASE_REQUIRED")
+            if (
+                isinstance(turn_id, str)
+                and isinstance(thread_id, str)
+                and isinstance(requested, str)
+                and requested == observed
+                and verified is True
+            ):
+                valid_handshakes[turn_id] = (thread_id, requested)
+        elif task_class in SOL_TASKS | TERRA_TASKS | LUNA_TASKS:
+            pending_execution_records.append((line_number, record))
+
+        if task_class == "final_target_acceptance":
+            implementation_threads = record.get("implementation_thread_ids")
+            independence_verified = record.get("independence_verified")
+            if (
+                not isinstance(implementation_threads, list)
+                or not implementation_threads
+                or not all(isinstance(item, str) and item for item in implementation_threads)
+            ):
+                errors.append(
+                    f"line {line_number}: FINAL_ACCEPTANCE_IMPLEMENTATION_THREADS_REQUIRED"
+                )
+            elif thread_id in implementation_threads:
+                errors.append(f"line {line_number}: FINAL_ACCEPTANCE_NOT_INDEPENDENT")
+            if independence_verified is not True:
+                errors.append(f"line {line_number}: FINAL_ACCEPTANCE_INDEPENDENCE_UNVERIFIED")
 
         if args.require_runtime_evidence and isinstance(thread_id, str) and isinstance(turn_id, str):
             actual_models, source_files = runtime_models(thread_id, turn_id, roots)
@@ -203,6 +248,25 @@ def main() -> int:
                         f"line {line_number}: RUNTIME_MODEL_MISMATCH "
                         f"requested={requested!r} logged={observed!r} runtime={actual!r}"
                     )
+
+    if args.require_handshake:
+        for line_number, record in pending_execution_records:
+            handshake_turn_id = record.get("handshake_turn_id")
+            if not isinstance(handshake_turn_id, str) or not handshake_turn_id:
+                errors.append(f"line {line_number}: MODEL_HANDSHAKE_REQUIRED")
+                continue
+            handshake = valid_handshakes.get(handshake_turn_id)
+            if handshake is None:
+                errors.append(
+                    f"line {line_number}: MODEL_HANDSHAKE_NOT_VERIFIED: {handshake_turn_id!r}"
+                )
+                continue
+            expected = (record.get("thread_id"), record.get("requested_model"))
+            if handshake != expected:
+                errors.append(
+                    f"line {line_number}: MODEL_HANDSHAKE_SCOPE_MISMATCH "
+                    f"handshake={handshake!r} execution={expected!r}"
+                )
 
     if not seen_turns:
         errors.append("routing log contains no turns")

@@ -21,6 +21,8 @@ Confirm:
 - the accepted worktree is clean and `HEAD` equals the recorded pushed commit;
 - every review turn has matching requested/observed model metadata;
 - every completed checkpoint has a commit, verified push, and progress report.
+- every reused check is valid for the same candidate and every missing/invalidated claim has a current execution scenario;
+- final acceptance runs on Terra in a thread outside the implementation-thread set.
 
 ## Wrong-target rule
 
@@ -28,4 +30,4 @@ Legacy, fallback, mock, fixture, test provider, static artifact, adjacent route,
 
 ## Final verdict
 
-Routine final acceptance uses Luna and returns `TARGET_VERIFIED` only with a compact evidence index and zero remaining required work. Escalate to Sol only when acceptance exposes a product, plan, architecture, or high-risk security contradiction; do not rerun the routine checklist with Sol.
+Independent Terra final acceptance returns `TARGET_VERIFIED` only with a compact same-candidate evidence index and zero remaining required work. Consume valid Luna deterministic evidence instead of repeating it. Escalate to Sol only when acceptance exposes a product, plan, architecture, or high-risk security contradiction.

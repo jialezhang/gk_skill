@@ -1,5 +1,7 @@
 # Plan Revision Protocol
 
+The current main agent owns every plan revision. Do not spawn, create, or delegate to a child agent, subagent, separate reviewer context, or separate task for any revision step. Run the revision in the main agent's Sol planning stage.
+
 ## Revision steps
 
 1. Identify the exact failed assumption/decision and decisive evidence.

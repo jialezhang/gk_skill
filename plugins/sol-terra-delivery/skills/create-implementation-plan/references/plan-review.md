@@ -17,7 +17,7 @@
 
 - Verified facts, assumptions, and recommendations are distinguishable.
 - External API claims cite current official evidence or remain `VERIFY_FIRST`.
-- The first realistic slice can falsify the risky direction early.
+- The first 阶段真实用户旅程 can falsify the risky direction early.
 
 ### Execution fitness
 
@@ -25,8 +25,8 @@
 - Tasks define bounded ownership and safe parallelism.
 - Terra can execute without recreating architecture decisions.
 - Every Goal has bounded P80, worktree/session/branch ownership, checkpoints, and an integration path.
-- Routine coverage review uses Luna; Sol review has a recorded escalation reason.
-- Plan-level contradictions have an explicit Sol escalation path.
+- The current main agent performs routine coverage review and records the result in the planning handoff.
+- Plan-level contradictions return to the current main agent's Sol planning pass without spawning a reviewer agent.
 
 ### Verification integrity
 

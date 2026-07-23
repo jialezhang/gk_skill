@@ -79,4 +79,4 @@ Sol recommends role, skills, write scope, parallel safety, and review owner. Ter
 
 ## Plan revision
 
-When execution disproves a baseline assumption, Sol changes only the affected plan/tasks, increments the plan revision, records the decisive evidence, and invalidates downstream task attempts that consumed the old contract. A technical revision that changes the PRD must stop for user approval.
+When execution disproves a baseline assumption, the current main agent runs the Sol planning stage itself, changes only the affected plan/tasks, increments the plan revision, records the decisive evidence, and invalidates downstream task attempts that consumed the old contract. Do not delegate the revision to a child agent or separate reviewer task. A technical revision that changes the PRD must stop for user approval, after which the current main agent performs the PRD revision.

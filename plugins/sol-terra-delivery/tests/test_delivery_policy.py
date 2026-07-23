@@ -287,10 +287,11 @@ class DeliveryGovernanceTextTests(unittest.TestCase):
         for required in ("hard limit of 20", "model-routing.jsonl", "commit", "push", "progress report"):
             self.assertIn(required, text)
 
-    def test_routine_final_acceptance_routes_to_luna(self) -> None:
+    def test_final_acceptance_routes_to_independent_terra(self) -> None:
         text = (SKILL_ROOT / "review-delivery-gate" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("gpt-5.6-terra", text)
+        self.assertIn("independent Terra", text)
         self.assertIn("gpt-5.6-luna", text)
-        self.assertIn("routine final acceptance", text)
 
     def test_plan_consumes_scope_and_defines_goal_isolation(self) -> None:
         text = (SKILL_ROOT / "create-implementation-plan" / "SKILL.md").read_text(encoding="utf-8")
@@ -299,15 +300,31 @@ class DeliveryGovernanceTextTests(unittest.TestCase):
             "program baseline",
             "worktree",
             "checkpoint",
-            "gpt-5.6-luna",
+            "current main agent",
+            "Do not spawn, create, or delegate",
         ):
             self.assertIn(required, text)
 
-    def test_prd_uses_one_sol_author_and_luna_routine_review(self) -> None:
+    def test_prd_is_authored_and_reviewed_only_by_main_agent(self) -> None:
         text = (SKILL_ROOT / "create-product-prd" / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("gpt-5.6-sol", text)
-        self.assertIn("gpt-5.6-luna", text)
-        self.assertNotIn("with `xhigh` reasoning and make it the PRD author", text)
+        self.assertIn("current main agent", text)
+        self.assertIn("Do not spawn, create, or delegate", text)
+        self.assertNotIn("fresh `gpt-5.6-luna` context", text)
+        self.assertNotIn("second Sol reviewer", text)
+
+    def test_controller_keeps_prd_and_plan_work_in_main_agent(self) -> None:
+        controller = (SKILL_ROOT / "product-to-delivery" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        revision = (
+            SKILL_ROOT / "review-delivery-gate" / "references" / "plan-revision.md"
+        ).read_text(encoding="utf-8")
+        for text in (controller, revision):
+            self.assertIn("current main agent", text)
+            self.assertIn("Do not spawn, create, or delegate", text)
+        self.assertNotIn("with a Sol-class product agent", controller)
+        self.assertNotIn("with a Sol-class planner", controller)
 
     def test_multi_goal_integration_skill_exists(self) -> None:
         text = (SKILL_ROOT / "integrate-goals" / "SKILL.md").read_text(encoding="utf-8")
@@ -368,6 +385,7 @@ class IntegrationPolicyTests(unittest.TestCase):
                 "schema_version": "1.0",
                 "program_id": "program-1",
                 "base_commit": "base123",
+                "program_state_valid": False,
                 "goals": [
                     {
                         "goal_id": "goal-1",
@@ -380,6 +398,11 @@ class IntegrationPolicyTests(unittest.TestCase):
                 "integration_commit": "",
                 "clean_worktree": False,
                 "full_verification_passed": False,
+                "candidate_evidence_valid": False,
+                "final_acceptance_model": "gpt-5.6-terra",
+                "final_acceptance_thread_id": "",
+                "implementation_thread_ids": ["implementation-1"],
+                "final_acceptance_independent": False,
                 "final_acceptance": "pending",
             }
         )
@@ -392,6 +415,7 @@ class IntegrationPolicyTests(unittest.TestCase):
                 "schema_version": "1.0",
                 "program_id": "program-1",
                 "base_commit": "base123",
+                "program_state_valid": True,
                 "goals": [
                     {
                         "goal_id": "goal-1",
@@ -404,6 +428,11 @@ class IntegrationPolicyTests(unittest.TestCase):
                 "integration_commit": "def456",
                 "clean_worktree": True,
                 "full_verification_passed": True,
+                "candidate_evidence_valid": True,
+                "final_acceptance_model": "gpt-5.6-terra",
+                "final_acceptance_thread_id": "acceptance-1",
+                "implementation_thread_ids": ["implementation-1"],
+                "final_acceptance_independent": True,
                 "final_acceptance": "TARGET_VERIFIED",
             }
         )

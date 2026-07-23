@@ -13,6 +13,7 @@ Read these references completely before starting:
 - [references/escalation-loop.md](references/escalation-loop.md)
 - [references/verification-loop.md](references/verification-loop.md)
 - [references/checkpoint-contract.md](references/checkpoint-contract.md)
+- [references/candidate-evidence-contract.md](references/candidate-evidence-contract.md)
 
 ## Preconditions
 
@@ -33,8 +34,9 @@ Return `DELIVERY_NOT_READY` if any condition is missing. Do not repair approval 
 1. Create or resume one visible session for this approved Goal. Do not set a token budget unless the user explicitly supplied one.
 2. Use a dedicated worktree and branch for the Goal. Allocate an isolated development port/browser context when runtime verification is required; do not claim another Goal's runtime as exact-target evidence.
 3. Run preflight: verify clean artifact revisions, repository target, worktree/branch, ports, rollback, verification commands, protected-data boundaries, program Agent budget, and absence of a second controller for this Goal.
-4. Initialize `delivery-state.yaml` from [assets/delivery-state-template.yaml](assets/delivery-state-template.yaml), pin artifact/scope revisions, and register every task, gate, checkpoint, Goal session, worktree, and model-routing log before spawning work.
-5. If the current agent is not the configured Terra controller, create one persistent Terra implementation context. Pass `gpt-5.6-terra` explicitly at creation and on every follow-up turn. Record the observed model in `model-routing.jsonl`; fail closed on mismatch.
+4. Require the active Program Goal and validated `program-state.yaml`; register this Goal as a milestone before initializing its state.
+5. Initialize `delivery-state.yaml` from [assets/delivery-state-template.yaml](assets/delivery-state-template.yaml), pin artifact/scope revisions, and register every task, gate, checkpoint, Goal session, worktree, candidate manifest, progress denominator, and model-routing log before spawning work.
+6. If the current agent is not the configured Terra controller, create one persistent Terra implementation context. Pass `gpt-5.6-terra` explicitly at creation and on every follow-up turn. Send a no-write routing handshake first; inspect `turn_context.payload.model`, record it, and only then send the execution packet. Fail closed and quarantine the turn on mismatch.
 
 ## Agent budget
 
@@ -54,16 +56,16 @@ The program owns one cumulative budget across all Goals: normal target 8, soft l
 5. Give each executor only the current execution packet: global MUST/FORBIDDEN IDs, task, consumed contract revisions, relevant prior evidence, write scope, verification, and escalation rules.
 6. Require the executor to inspect actual code before editing, implement the smallest complete task outcome, run focused checks, inspect its diff, and return [assets/handoff-template.yaml](assets/handoff-template.yaml).
 7. Reject handoffs that omit artifact revisions, actual verification output, deviations, or remaining risk.
-8. Assign routine focused checks, build, browser E2E, and checklist reconciliation to an independent `gpt-5.6-luna` context. Sol is used only for an allowed product, plan, architecture, or high-risk security escalation.
+8. Assign routine focused checks, typecheck, build, diff checks, baseline comparison, and checklist reconciliation to an independent `gpt-5.6-luna` context. Assign browser acceptance, 阶段真实用户旅程, runtime lifecycle/Provider-boundary acceptance, and final exact-target acceptance to an independent `gpt-5.6-terra` context. Sol is used only for an allowed product, plan, architecture, or high-risk security escalation.
 9. Route results:
    - local failure → same executor or debugger;
    - cross-module integration failure → integration executor;
    - plan contradiction → pause affected tasks and invoke `$review-delivery-gate` with a Sol escalation packet;
    - product conflict → stop affected delivery and request user decision.
 10. At each gate invoke `$review-delivery-gate` with exact evidence. Never let task completion implicitly pass a gate.
-11. When an independently runnable vertical slice or planned stage is complete, run the checkpoint contract: focused verification, diff/protected-data checks, commit only owned files, push the Goal branch, then issue a progress report with the commit SHA and four fixed denominators. A checkpoint is not delivered if commit or push failed.
+11. When an independently runnable 阶段真实用户旅程 or planned stage is complete, run the checkpoint contract: risk-appropriate verification, diff/protected-data checks, commit only owned files, push the Goal branch, then issue a progress report with the commit SHA and four fixed denominators. A checkpoint is not delivered if commit or push failed.
 12. Update state and `model-routing.jsonl` after every turn, attempt, review, gate, checkpoint, revision, and invalidation. Preserve history; do not overwrite failed evidence.
-13. Continue until all blocking requirements reach `Verified` on the exact target and Luna routine final acceptance passes on a clean commit, or an allowed Sol escalation is resolved.
+13. Continue until all blocking requirements reach `Verified` on the exact target and independent Terra final acceptance passes on a clean commit, or an allowed Sol escalation is resolved.
 
 ## Recovery and persistence
 
@@ -75,4 +77,6 @@ The program owns one cumulative budget across all Goals: normal target 8, soft l
 
 ## Completion
 
-Mark the Goal complete only after `TARGET_VERIFIED` is attached to the exact clean commit, every required checkpoint is pushed/reported, model routing validates, and there is no required work remaining. A multi-Goal program remains incomplete until `$integrate-goals` verifies the integrated clean commit.
+For a multi-Goal Program, mark this milestone `GOAL_TARGET_VERIFIED` only after the exact clean commit, required 阶段真实用户旅程, every checkpoint, model routing, candidate evidence, and fixed progress denominators validate. Do not call the runtime Goal completion tool.
+
+Only the Program controller may mark the runtime Program Goal complete, after `$integrate-goals`, independent Terra final acceptance, completion-scope reconciliation, and `validate_program_state.py` all pass. A single-Goal delivery follows the same Program completion gate without an integration merge.

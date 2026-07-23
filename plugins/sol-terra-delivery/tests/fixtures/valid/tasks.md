@@ -21,7 +21,15 @@ plan_version: 1.0.0
 - **Write scope:** status component and focused test
 - **Outcome:** running work is visible
 - **Acceptance:** J-001 is observable
-- **Verification:** focused render test and AC-001
+- **Verification:**
+  - test_level: change
+  - risk and impact surface: status projection and production route
+  - focused/change commands: focused render test and SC-001
+  - full-run reason: not_applicable
+  - Provider mode: not_applicable
+  - Provider budget/call limit: not_applicable
+  - evidence invalidation keys: commit, build, route
+  - 阶段真实用户旅程/ exact-target handoff: SC-001
 - **Rollback/disable:** revert bounded component change
 - **Escalate to Sol when:** a second state owner is required
 - **Evidence destination:** evidence/T-001

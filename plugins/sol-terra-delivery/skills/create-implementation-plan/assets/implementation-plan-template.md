@@ -37,7 +37,8 @@ current_milestone: M1
 
 - Sol allowed stages/reasons:
 - Terra execution stages:
-- Luna routine verification stages:
+- Luna deterministic verification stages:
+- Terra browser/journey/final acceptance stages:
 - Agent target/soft/hard limit: 8 / 12 / 20
 - Maximum parallel Goal sessions: 3
 - Model-routing Canary evidence:
@@ -106,9 +107,9 @@ current_milestone: M1
 - Invariants, including why interaction or transport completion cannot prematurely terminate business-work observation:
 - Fault cases that must be proven on the exact target:
 
-## First Realistic Vertical Slice
+## 阶段真实用户旅程
 
-- Journey:
+- Stage and journey:
 - Exact target:
 - Must prove:
 - Explicitly excluded before the gate:
@@ -141,10 +142,13 @@ current_milestone: M1
 
 ## Verification Strategy
 
-- Focused checks:
-- Integration checks:
-- Exact-target cases:
-- Regression:
+- `test:fast`:
+- `test:change`:
+- `test:full` trigger and candidate rule:
+- Acceptance claims versus execution scenarios:
+- Provider modes and cost limits:
+- Evidence reuse/invalidation keys:
+- Cartesian matrix policy:
 - Lifecycle interruption and convergence checks when applicable:
 
 ## Plan Review Record
