@@ -1,13 +1,23 @@
-schema_version: "1.0"
+schema_version: "1.1"
 delivery_id: ""
 status: DELIVERY_ACTIVE
 controller:
   role: terra_delivery
   agent_id: ""
   lease_updated_at: ""
+program:
+  program_id: ""
+  program_state_path: ""
+  scope_assessment_path: ""
+  split_decision: single_goal
+  integration_status: not_required
 goal:
   objective: ""
   status: active
+  session_id: ""
+  worktree: ""
+  branch: ""
+  development_port: null
 artifacts:
   prd_path: ""
   prd_version: ""
@@ -18,10 +28,43 @@ artifacts:
   verification_path: ""
   verification_version: ""
 target_identity: {}
+model_routing_log: "model-routing.jsonl"
+model_canary_status: pending
+model_handshake_status: pending
+agent_budget:
+  normal_target: 8
+  soft_limit: 12
+  hard_limit: 20
+  spawned_total: 0
+  max_nesting_depth: 1
+  max_parallel_goal_sessions: 3
 tasks: {}
 gates: {}
+checkpoints: []
 attempts: []
 active_agents: []
+progress:
+  implementation_completed: 0
+  implementation_total: 0
+  automation_completed: 0
+  automation_total: 0
+  exact_target_completed: 0
+  exact_target_total: 0
+  release_completed: 0
+  release_total: 0
+  current_activity: ""
+  remaining_p50_minutes: 0
+  remaining_p80_minutes: 0
+  last_progress_at: ""
+candidate:
+  commit: ""
+  evidence_manifest: ""
+  status: pending
+stage_user_journeys: []
+test_evidence:
+  baseline_manifest: ""
+  impact_map: ""
+  evidence_index: ""
 escalations: []
 decisions: []
 evidence: []

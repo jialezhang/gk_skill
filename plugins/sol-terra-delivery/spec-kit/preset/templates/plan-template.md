@@ -15,6 +15,32 @@ current_milestone: M1
 - Blocking journeys:
 - Invariants and non-goals:
 
+## Scope Assessment and Goal Packaging
+
+- Scope assessment path/revision:
+- P50/P80/P90 wall-clock estimate:
+- Split recommendation/decision/source:
+- Program baseline: single_goal | multi_goal
+
+| Goal | Independent outcome | P50/P80 | Dependencies | Write conflicts | Session | Worktree/branch | Port/browser context | Checkpoint |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+
+## Program Dependency and Conflict Graph
+
+```text
+[Goal dependency and write-conflict graph]
+```
+
+## Model and Agent Budget
+
+- Sol allowed reasons:
+- Terra execution stages:
+- Luna deterministic verification stages:
+- Terra browser/journey/final acceptance stages:
+- Agent target/soft/hard limit: 8 / 12 / 20
+- Maximum parallel Goal sessions: 3
+- Model-routing Canary evidence:
+
 ## Requirement Traceability
 
 | Requirement | Journey | Milestone | Tasks | Automated evidence | Exact-target case | Gate |
@@ -63,9 +89,9 @@ current_milestone: M1
 | Field/fact | Source | Validation | Persistence | Consumer | Recovery |
 | --- | --- | --- | --- | --- | --- |
 
-## First Realistic Vertical Slice
+## 阶段真实用户旅程
 
-- Journey:
+- Stage and journey:
 - Exact target:
 - Must prove:
 - Must not build before gate:
@@ -87,12 +113,24 @@ current_milestone: M1
 | Task | Preferred role | Required skills | Write scope | Parallel with | Reviewer |
 | --- | --- | --- | --- | --- | --- |
 
+## Checkpoint and Integration Plan
+
+| Checkpoint | Goal | Runnable outcome | Required checks | Commit/push/report | Integration order |
+| --- | --- | --- | --- | --- | --- |
+
+- Integration owner:
+- Integration worktree/branch:
+- Clean-commit verification commands:
+
 ## Verification Strategy
 
-- Focused automated checks:
-- Integration checks:
-- Exact-target cases:
-- Regression:
+- `test:fast`:
+- `test:change`:
+- `test:full` trigger and candidate rule:
+- Acceptance claims versus execution scenarios:
+- Provider modes and cost limits:
+- Evidence reuse/invalidation keys:
+- Cartesian matrix policy:
 
 ## Plan Review Record
 

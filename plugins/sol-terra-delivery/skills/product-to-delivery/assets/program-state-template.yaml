@@ -1,0 +1,42 @@
+schema_version: "1.1"
+program_id: ""
+status: PROGRAM_ACTIVE
+completion_scope: branch
+runtime_goal:
+  created: false
+  goal_id: ""
+  objective: ""
+  status: active
+superseded_runtime_goals: []
+controller:
+  thread_id: ""
+  lease_updated_at: ""
+goals: []
+progress:
+  implementation_completed: 0
+  implementation_total: 0
+  automation_completed: 0
+  automation_total: 0
+  exact_target_completed: 0
+  exact_target_total: 0
+  release_completed: 0
+  release_total: 0
+  current_activity: ""
+  remaining_p50_minutes: 0
+  remaining_p80_minutes: 0
+  last_progress_at: ""
+release:
+  integration_status: pending
+  merge_status: pending
+  deployment_status: pending
+  production_verification_status: pending
+candidate:
+  commit: ""
+  evidence_manifest: ""
+  status: pending
+coordination:
+  active_started_at: ""
+  coordination_wait_started_at: ""
+  coordination_wait_seconds: 0
+created_at: ""
+updated_at: ""

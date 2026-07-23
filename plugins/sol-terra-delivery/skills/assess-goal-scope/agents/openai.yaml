@@ -1,0 +1,4 @@
+interface:
+  display_name: "Assess Goal Scope"
+  short_description: "Estimate delivery size and safe Goal boundaries."
+  default_prompt: "Use $assess-goal-scope to size this approved PRD before implementation planning."

@@ -3,7 +3,7 @@ schema_version: "1.0"
 bundle:
   id: "sol-terra-delivery"
   name: "Sol Terra Delivery"
-  version: "0.1.0"
+  version: "0.2.0"
   role: "product-delivery"
   description: "Agent-ready product specification, governed implementation planning, and pre-delivery approvals."
   author: "jialezhang"
@@ -17,15 +17,15 @@ requires:
 provides:
   extensions:
     - id: "delivery-governance"
-      version: "0.1.0"
+      version: "0.2.0"
   presets:
     - id: "sol-terra-artifacts"
-      version: "0.1.0"
+      version: "0.2.0"
       priority: 5
       strategy: "replace"
   workflows:
     - id: "sol-terra-pre-delivery"
-      version: "0.1.0"
+      version: "0.2.0"
 
 tags:
   - "product"

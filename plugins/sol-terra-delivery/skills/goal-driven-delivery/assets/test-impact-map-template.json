@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "program_id": "",
+  "candidate_commit": "",
+  "changed_surfaces": [],
+  "risk_classes": [],
+  "affected_claims": [],
+  "affected_scenarios": [],
+  "required_test_level": "fast",
+  "provider_modes": [],
+  "invalidation_keys_changed": [],
+  "full_run_reason": "not_applicable",
+  "updated_at": ""
+}

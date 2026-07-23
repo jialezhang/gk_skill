@@ -37,7 +37,7 @@ For a long-running journey, also record lifecycle identity and correlation keys,
 At minimum define:
 
 - readiness gate before speculative expansion;
-- first realistic vertical-slice gate;
+- first 阶段真实用户旅程 gate;
 - safety/data/migration gates when applicable;
 - final exact-target acceptance gate.
 

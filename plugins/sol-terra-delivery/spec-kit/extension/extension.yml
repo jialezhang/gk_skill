@@ -3,12 +3,12 @@ schema_version: "1.0"
 extension:
   id: "delivery-governance"
   name: "Delivery Governance"
-  version: "0.1.0"
+  version: "0.2.0"
   description: "Explicit PRD and plan approvals plus delivery status reconciliation for Sol-Terra delivery."
   category: "process"
   effect: "read-write"
   author: "jialezhang"
-  repository: "https://github.com/jialezhang/skill"
+  repository: "https://github.com/jialezhang/gk_skill"
   license: "MIT"
 
 requires:

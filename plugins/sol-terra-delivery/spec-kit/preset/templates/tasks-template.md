@@ -7,12 +7,13 @@ plan_version: 0.1.0
 
 ## Task Index
 
-| ID | Milestone | Observable outcome | Dependencies | Preferred role | Gate | Status |
-| --- | --- | --- | --- | --- | --- | --- |
+| ID | Goal | Milestone | Observable outcome | Dependencies | Preferred role | Checkpoint | Gate | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## [T-001] [Observable outcome]
 
 - **Requirements**: R-000
+- **Goal**: GOAL-01
 - **Dependencies**: none
 - **Contracts consumed**:
 - **Commitments**: DEC-000
@@ -20,17 +21,24 @@ plan_version: 0.1.0
 - **Required skills**:
 - **Write scope**:
 - **Parallel safety**:
+- **Worktree/branch and port/browser context**:
 - **Outcome**:
 - **Acceptance**:
   - [ ]
 - **Verification**:
-  - focused:
-  - integration:
-  - exact-target handoff:
+  - test_level: fast | change | full
+  - risk and impact surface:
+  - focused/change commands:
+  - full-run reason: not_applicable | [why fast/change is insufficient]
+  - Provider mode: mock | sandbox | real_free | real_expensive | not_applicable
+  - Provider budget/call limit: not_applicable | [budget and maximum calls]
+  - evidence invalidation keys:
+  - 阶段真实用户旅程/ exact-target handoff:
 - **Candidate touchpoints (non-binding)**:
 - **Rollback/disable**:
 - **Escalate to Sol when**:
 - **Evidence destination**:
+- **Checkpoint commit/push/progress report**:
 - **Documentation/Legacy/migration obligations (when applicable)**:
 
 ## Gates

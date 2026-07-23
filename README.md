@@ -6,10 +6,15 @@ An installable Codex plugin and Spec Kit customization for this lifecycle:
 $grill-me
 → $create-product-prd
 → user approves PRD
+→ $assess-goal-scope
+→ user chooses split or single Goal (240s silence defaults to single)
 → $create-implementation-plan
 → user approves plan
-→ $goal-driven-delivery
-→ Terra executors and independent verification
+→ verified Sol/Terra/Luna routing Canary
+→ one or more $goal-driven-delivery sessions/worktrees
+→ checkpoint commit + push + progress report
+→ $integrate-goals when delivery was split
+→ Luna routine final acceptance
 → plan conflict escalates to Sol
 → product conflict escalates to the user
 → verified completion
@@ -18,7 +23,7 @@ $grill-me
 The toolkit keeps the two control planes separate:
 
 - Spec Kit owns durable artifacts: `spec.md`, `plan.md`, `tasks.md`, approvals, and traceability.
-- Codex owns live execution: one top-level Goal, subagent attempts, retries, escalation, and completion.
+- Codex owns live execution: one controller per Goal, a program-level dependency/Agent budget, isolated worktrees/sessions, retries, integration, and completion.
 
 It does not replace the existing `grill-me` skill. The PRD skill consumes the completed conversation or a discovery artifact. The implementation-plan skill is a new, standalone toolkit skill whose planning method is based on the custom planning work in [`jialezhang/skill`](https://github.com/jialezhang/skill/tree/main).
 
@@ -31,7 +36,7 @@ codex plugin marketplace add .
 codex plugin add sol-terra-delivery@gk-skill
 ```
 
-Restart Codex after installation so the five skills are discovered.
+Restart Codex after installation so the seven skills are discovered.
 
 ## Install the Spec Kit layer into a project
 
@@ -62,13 +67,26 @@ $create-product-prd
 Use the completed discovery above. Write the PRD into the current Spec Kit feature.
 
 # After reviewing and explicitly approving the PRD:
+$assess-goal-scope
+
 $create-implementation-plan
 
 # After reviewing and explicitly approving plan.md and tasks.md:
 $goal-driven-delivery
 ```
 
-`$product-to-delivery` is the convenience controller. It selects the current stage and pauses at both human approval gates. It never treats silence as approval.
+`$product-to-delivery` is the convenience controller. It selects the current stage and pauses at both human approval gates. Silence never approves a PRD or plan. The only timed default is Goal packaging: after a 240-second unanswered split prompt, delivery remains one Goal and records `timeout_default_single`.
+
+## Delivery policy
+
+- Scope is inspected before planning. P80 above 8 hours recommends splitting; above 10 hours strongly recommends it. Users may still choose one Goal.
+- Sol handles PRD, scope, planning, and genuine product/plan/architecture/high-risk security conflicts.
+- Terra handles delivery control, implementation, debugging, rework, and integration.
+- Luna handles routine checks, build/checklist review, browser E2E, and uncomplicated final acceptance.
+- Model selection is explicit on every turn. Runtime metadata—not an Agent name or self-report—must prove the observed model. A mismatch fails closed.
+- The normal Agent target is 8, soft limit 12, cumulative hard limit 20, maximum nesting depth 1, and at most 3 parallel Goal sessions.
+- Each runnable stage ends with focused checks, an owned-file commit, verified push, and a fixed-denominator progress report.
+- Multi-Goal delivery is accepted only after a clean integration commit passes the complete approved verification path.
 
 ## Skill depth
 
@@ -78,13 +96,15 @@ The entry `SKILL.md` files are intentionally short routing surfaces. They are no
 | --- | --- |
 | `$product-to-delivery` | Lifecycle state detection, approval protocol, stage routing, recovery, and Sol/Terra authority boundaries |
 | `$create-product-prd` | Discovery normalization, repository and user evidence, product-state modeling, requirement metadata, independent review, and deterministic PRD validation |
+| `$assess-goal-scope` | Repository-based work packages, P50/P80/P90 sizing, split recommendation, timeout decision, dependency/conflict graph, and Goal boundary handoff |
 | `$create-implementation-plan` | Direction readiness, architecture and ownership contracts, complete milestone/task baseline, dependency graph, delegation map, exact-target verification, independent plan review, and cross-artifact validation |
-| `$goal-driven-delivery` | One Goal owner, ready-queue scheduling, role-specific execution packets, safe parallelism, handoffs, retries, gate checks, escalation, revision pinning, and restart recovery |
-| `$review-delivery-gate` | Independent evidence review, plan-level conflict classification, revision invalidation, exact-target acceptance, and final PRD-to-runtime reconciliation |
+| `$goal-driven-delivery` | Per-Goal Terra ownership, worktree/session isolation, ready-queue scheduling, 20-Agent hard cap, per-turn routing records, checkpoint commits, retries, gates, and restart recovery |
+| `$integrate-goals` | Clean integration worktree, ordered Goal merge, conflict routing, full verification, Luna acceptance, and cross-session evidence/telemetry aggregation |
+| `$review-delivery-gate` | Luna routine evidence review, Terra code-quality review, Sol escalation classification, exact-target acceptance, and final PRD-to-runtime reconciliation |
 
 The planning skill is therefore not a reduced replacement for the earlier planning work. It preserves the high-value readiness, responsibility-replacement, verification, rollback, and Legacy-exit methods, while removing repeated prose and treating unsupported implementation guesses as `VERIFY_FIRST` rather than facts.
 
-The optional Spec Kit workflow prepares artifacts only:
+The optional Spec Kit workflow prepares PRD, scope, plan, tasks, and verification artifacts only:
 
 ```bash
 specify workflow run sol-terra-pre-delivery \

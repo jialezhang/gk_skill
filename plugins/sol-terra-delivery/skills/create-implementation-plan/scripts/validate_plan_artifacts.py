@@ -21,7 +21,7 @@ PLAN_HEADINGS = {
     "Responsibility Replacement",
     "Data, Identity, and Safety Flow",
     "Runtime Lifecycle and State Convergence",
-    "First Realistic Vertical Slice",
+    "阶段真实用户旅程",
     "Complete Milestone Baseline",
     "Dependency Graph",
     "Delegation Map",
@@ -38,6 +38,8 @@ VERIFICATION_HEADINGS = {
     "Automated and Integration Matrix",
     "Runtime Lifecycle and Convergence Matrix",
     "Exact-target Acceptance Cases",
+    "Execution Scenario Coverage",
+    "Candidate Evidence Policy",
     "Gate Matrix",
     "Final Reconciliation",
 }
@@ -72,6 +74,33 @@ def task_dependencies(tasks_text: str) -> tuple[set[str], dict[str, set[str]]]:
         if dep_line and dep_line.group(1).lower() != "none":
             dependencies[match.group(1)].update(re.findall(r"T-\d+", dep_line.group(1)))
     return task_ids, dependencies
+
+
+def task_blocks(tasks_text: str) -> list[tuple[str, str]]:
+    matches = list(re.finditer(r"^##\s+\[(T-\d+)\]\s+.*$", tasks_text, re.MULTILINE))
+    blocks: list[tuple[str, str]] = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(tasks_text)
+        blocks.append((match.group(1), tasks_text[match.end():end]))
+    return blocks
+
+
+def field(body: str, name: str) -> str | None:
+    match = re.search(
+        rf"^\s*-\s+(?:\*\*)?{re.escape(name)}(?:\*\*)?:\s*(.*?)\s*$",
+        body,
+        re.MULTILINE | re.IGNORECASE,
+    )
+    return match.group(1).strip() if match else None
+
+
+def scenario_blocks(verification: str) -> list[tuple[str, str]]:
+    matches = list(re.finditer(r"^###\s+(SC-\d+):.*$", verification, re.MULTILINE))
+    blocks: list[tuple[str, str]] = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(verification)
+        blocks.append((match.group(1), verification[match.end():end]))
+    return blocks
 
 
 def find_cycle(task_ids: set[str], dependencies: dict[str, set[str]]) -> bool:
@@ -159,6 +188,30 @@ def main() -> int:
             errors.append(f"{task} depends on itself")
     if task_ids and find_cycle(task_ids, dependencies):
         errors.append("task dependency graph contains a cycle")
+    for task_id, body in task_blocks(tasks):
+        test_level = field(body, "test_level")
+        provider_mode = field(body, "Provider mode")
+        invalidation_keys = field(body, "evidence invalidation keys")
+        if test_level not in {"fast", "change", "full"}:
+            errors.append(f"{task_id}: invalid or missing test_level")
+        if provider_mode not in {
+            "mock",
+            "sandbox",
+            "real_free",
+            "real_expensive",
+            "not_applicable",
+        }:
+            errors.append(f"{task_id}: invalid or missing Provider mode")
+        if not invalidation_keys:
+            errors.append(f"{task_id}: evidence invalidation keys are required")
+        if test_level == "full":
+            reason = field(body, "full-run reason")
+            if not reason or reason.lower() in {"not_applicable", "none", "n/a"}:
+                errors.append(f"{task_id}: full test level requires a full-run reason")
+        if provider_mode == "real_expensive":
+            budget = field(body, "Provider budget/call limit")
+            if not budget or budget.lower() in {"not_applicable", "none", "n/a"}:
+                errors.append(f"{task_id}: real_expensive Provider requires budget/call limit")
 
     gates = set(re.findall(r"^###\s+\[(G-\d+)\]", tasks, re.MULTILINE))
     if not gates:
@@ -166,6 +219,48 @@ def main() -> int:
     acceptance_cases = set(re.findall(r"^###\s+(AC-\d+):", verification, re.MULTILINE))
     if not acceptance_cases:
         errors.append("no exact-target acceptance cases found")
+    scenarios = scenario_blocks(verification)
+    if not scenarios:
+        errors.append("no execution scenarios found")
+    covered_claims: set[str] = set()
+    for scenario_id, body in scenarios:
+        proves = field(body, "Proves")
+        referenced_claims = set(re.findall(r"AC-\d+", proves or ""))
+        if not referenced_claims:
+            errors.append(f"{scenario_id}: Proves must reference at least one AC")
+        for claim in sorted(referenced_claims - acceptance_cases):
+            errors.append(f"{scenario_id}: references unknown acceptance claim {claim}")
+        covered_claims.update(referenced_claims)
+        provider_mode = field(body, "Provider mode")
+        if provider_mode not in {
+            "mock",
+            "sandbox",
+            "real_free",
+            "real_expensive",
+            "not_applicable",
+        }:
+            errors.append(f"{scenario_id}: invalid or missing Provider mode")
+        if provider_mode == "real_expensive":
+            budget = field(body, "Provider budget/call limit")
+            if not budget or budget.lower() in {"not_applicable", "none", "n/a"}:
+                errors.append(f"{scenario_id}: real_expensive Provider requires budget/call limit")
+        matrix_type = field(body, "Matrix type")
+        if matrix_type not in {"representative", "pairwise", "cartesian"}:
+            errors.append(f"{scenario_id}: invalid or missing Matrix type")
+        if matrix_type == "cartesian":
+            for required_field in (
+                "Interaction risk",
+                "Pairwise insufficient because",
+                "Estimated executions",
+                "Budget",
+            ):
+                value = field(body, required_field)
+                if not value or value.lower() in {"not_applicable", "none", "n/a"}:
+                    errors.append(
+                        f"{scenario_id}: cartesian matrix requires {required_field}"
+                    )
+    for claim in sorted(acceptance_cases - covered_claims):
+        errors.append(f"acceptance claim has no execution scenario: {claim}")
 
     if not args.allow_placeholders:
         for text, label in ((plan, "plan"), (tasks, "tasks"), (verification, "verification")):

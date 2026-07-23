@@ -16,6 +16,33 @@ current_milestone: M1
 - Blocking journeys:
 - Non-goals:
 
+## Scope Assessment and Goal Packaging
+
+- Scope assessment path/revision:
+- P50/P80/P90 wall-clock estimate:
+- Split recommendation and strength:
+- Split decision/source:
+- Program baseline: single_goal | multi_goal
+
+| Goal | Independent outcome | P50/P80 | Dependencies | Write conflicts | Session | Worktree/branch | Port/browser context | Checkpoint |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+
+## Program Dependency and Conflict Graph
+
+```text
+[Goal dependency and write-conflict graph]
+```
+
+## Model and Agent Budget
+
+- Sol allowed stages/reasons:
+- Terra execution stages:
+- Luna deterministic verification stages:
+- Terra browser/journey/final acceptance stages:
+- Agent target/soft/hard limit: 8 / 12 / 20
+- Maximum parallel Goal sessions: 3
+- Model-routing Canary evidence:
+
 ## Requirement Traceability
 
 | Requirement | Journey | Milestone | Tasks | Automated evidence | Exact-target case | Gate |
@@ -80,9 +107,9 @@ current_milestone: M1
 - Invariants, including why interaction or transport completion cannot prematurely terminate business-work observation:
 - Fault cases that must be proven on the exact target:
 
-## First Realistic Vertical Slice
+## 阶段真实用户旅程
 
-- Journey:
+- Stage and journey:
 - Exact target:
 - Must prove:
 - Explicitly excluded before the gate:
@@ -104,12 +131,24 @@ current_milestone: M1
 | Task | Preferred role | Required skills | Write scope | Parallel with | Reviewer |
 | --- | --- | --- | --- | --- | --- |
 
+## Checkpoint and Integration Plan
+
+| Checkpoint | Goal | Runnable outcome | Required checks | Commit/push/report | Integration order |
+| --- | --- | --- | --- | --- | --- |
+
+- Integration owner:
+- Integration worktree/branch:
+- Clean-commit verification commands:
+
 ## Verification Strategy
 
-- Focused checks:
-- Integration checks:
-- Exact-target cases:
-- Regression:
+- `test:fast`:
+- `test:change`:
+- `test:full` trigger and candidate rule:
+- Acceptance claims versus execution scenarios:
+- Provider modes and cost limits:
+- Evidence reuse/invalidation keys:
+- Cartesian matrix policy:
 - Lifecycle interruption and convergence checks when applicable:
 
 ## Plan Review Record
