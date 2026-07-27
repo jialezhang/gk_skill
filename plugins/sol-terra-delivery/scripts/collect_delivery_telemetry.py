@@ -7,7 +7,7 @@ import argparse
 import json
 import sys
 from collections import defaultdict
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -212,7 +212,7 @@ def main() -> int:
         report["completion_snapshot"] = {
             "status": "captured_with_unavailable" if unavailable else "captured",
             "capture_event": "before_terminal_transition",
-            "captured_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+            "captured_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "source": "runtime_turn_telemetry",
             "unavailable_fields": unavailable,
         }
