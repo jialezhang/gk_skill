@@ -368,6 +368,27 @@ class DeliveryStatePolicyTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("completed checkpoint CP-01", result.stderr)
 
+    def test_terminal_state_requires_completion_telemetry(self) -> None:
+        state = (
+            SKILL_ROOT / "goal-driven-delivery" / "assets" / "delivery-state-template.yaml"
+        ).read_text(encoding="utf-8")
+        state = state.replace("status: DELIVERY_ACTIVE", "status: TARGET_VERIFIED", 1)
+        state = state.replace("candidate:\n  commit: \"\"", "candidate:\n  commit: \"abc123\"")
+        state = state.replace("evidence_manifest: \"\"", "evidence_manifest: \"candidate.json\"")
+        state = state.replace("status: pending\nstage_user_journeys", "status: target_verified\nstage_user_journeys", 1)
+        state = state.replace("model_canary_status: pending", "model_canary_status: passed")
+        state = state.replace("model_handshake_status: pending", "model_handshake_status: passed")
+        state = state.replace("program_state_path: \"\"", "program_state_path: \"program.yaml\"")
+        state = state.replace("baseline_manifest: \"\"", "baseline_manifest: \"baseline.json\"")
+        state = state.replace("impact_map: \"\"", "impact_map: \"impact.json\"")
+        state = state.replace("evidence_index: \"\"", "evidence_index: \"index.json\"")
+        for lane in ("implementation", "automation", "exact_target", "release"):
+            state = state.replace(f"{lane}_total: 0", f"{lane}_total: 1")
+            state = state.replace(f"{lane}_completed: 0", f"{lane}_completed: 1")
+        result = self._validate(state)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("completion_telemetry.status", result.stderr)
+
 
 class IntegrationPolicyTests(unittest.TestCase):
     def _validate(self, manifest: dict[str, object]) -> subprocess.CompletedProcess[str]:
@@ -425,12 +446,30 @@ class IntegrationPolicyTests(unittest.TestCase):
                         "pushed": True,
                         "target_verified": True,
                         "model_routing_valid": True,
+                        "evidence_lifecycle_valid": True,
+                        "completion_telemetry_snapshot": "telemetry/goal-1.json",
                     }
                 ],
                 "integration_commit": "def456",
                 "clean_worktree": True,
                 "full_verification_passed": True,
                 "candidate_evidence_valid": True,
+                "evidence_lifecycle_valid": True,
+                "runtime_provenance": {
+                    "status": "verified",
+                    "candidate_commit": "def456",
+                    "evidence_path": "evidence/runtime.json",
+                },
+                "goal_telemetry_snapshots": [
+                    {"goal_id": "goal-1", "snapshot_path": "telemetry/goal-1.json"}
+                ],
+                "completion_telemetry": {
+                    "status": "captured",
+                    "snapshot_path": "telemetry/program.json",
+                    "captured_at": "2026-07-23T00:00:00Z",
+                    "source": "runtime_turn_telemetry",
+                    "unavailable_fields": [],
+                },
                 "final_acceptance_model": "gpt-5.6-terra",
                 "final_acceptance_thread_id": "acceptance-1",
                 "final_acceptance_turn_id": "acceptance-turn-1",

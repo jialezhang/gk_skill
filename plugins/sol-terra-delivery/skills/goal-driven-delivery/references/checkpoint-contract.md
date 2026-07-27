@@ -10,7 +10,7 @@ Checkpoint after each independently runnable vertical slice, approved milestone,
 2. Inspect protected-data boundaries and confirm no unrelated user changes are staged.
 3. Commit only owned files with repository-required decision trailers.
 4. Push the Goal branch and verify the remote commit.
-5. Record commit SHA, verification evidence, push status, remaining risk, and report time in delivery state.
+5. Record commit SHA, verification evidence, push status, remaining risk, report time, and every new/continued/invalidated evidence record in delivery state.
 6. Send a progress report immediately.
 
 Required progress report fields:
@@ -21,6 +21,7 @@ Required progress report fields:
 - automation completed/total;
 - exact-target acceptance completed/total;
 - release completed/total;
+- accepted, invalidated, and superseded evidence IDs plus affected gates;
 - current work, P50/P80 remaining estimate, blockers, and next checkpoint.
 
 Final acceptance runs only on a clean committed tree. Dirty-worktree evidence is diagnostic, not release evidence.
@@ -32,3 +33,5 @@ Persist progress after every task/gate transition and at least every 15 minutes 
 ## Evidence reuse
 
 Record every check in `test-evidence-index.json`. A reviewer or later stage consumes valid same-candidate evidence and runs only uncovered or invalidated checks. A new reviewer, retry, or model switch does not by itself justify repeating a full suite or build.
+
+At the terminal checkpoint, collect the completion telemetry snapshot before the Goal state transition. State the source and unavailable fields instead of estimating missing model or subagent usage after the fact.

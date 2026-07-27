@@ -14,6 +14,7 @@ Exceptional transitions:
 - `assigned/in_progress → abandoned → ready` after agent-liveness reconciliation
 - any nonterminal state → `blocked` for a genuine external/product blocker
 - `implemented/verified → stale` when a consumed artifact revision changes
+- `verified → stale` when its accepted evidence is invalidated, superseded, or its runtime provenance no longer identifies the verified target
 
 Only the controller changes task state. Executors report outcomes; they do not mark shared state complete.
 
@@ -21,14 +22,18 @@ Only the controller changes task state. Executors report outcomes; they do not m
 
 `pending → review_ready → passed | failed | blocked | stale`
 
-A gate becomes `review_ready` only when all prerequisites and required evidence are present. Plan revision marks dependent passed gates `stale` when their proof no longer applies.
+A gate becomes `review_ready` only when all prerequisites and required evidence are present. A gate becomes `passed` only when every referenced record is `accepted`; runtime targets additionally require same-candidate verified runtime provenance. Plan revision marks dependent passed gates `stale` when their proof no longer applies.
 
 ## Attempt identity
 
 Each assignment creates a unique attempt containing Goal/session/worktree, task ID, artifact revisions, requested and observed model, executor role/agent, write scope, start/end time, result, commits/diff identity, tests, evidence, deviations, and invalidation status.
 
-Every completed checkpoint records a clean commit SHA, verified remote push, fixed-denominator progress report, and model-routing validation. A checkpoint without all four remains `checkpoint_incomplete`.
+Every completed checkpoint records a clean commit SHA, verified remote push, fixed-denominator progress report, model-routing validation, and any evidence lifecycle transition. A checkpoint without the first four remains `checkpoint_incomplete`.
 
 ## Artifact pinning
 
 State pins PRD, plan, tasks, and verification revisions. The controller must not execute a packet generated from another revision. Approval metadata and content revision travel together.
+
+## Terminal telemetry
+
+Before a Goal transitions to `complete` or `blocked`, the controller captures a completion telemetry snapshot. The snapshot records its capture time, source, observed totals by model/stage where available, and explicit unavailable fields. A terminal state without a pre-transition snapshot is invalid because many runtimes no longer expose Goal usage after completion.

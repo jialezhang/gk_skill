@@ -79,6 +79,7 @@ def main() -> int:
 
     required_files = [
         "scripts/validate_completion_gate.py",
+        "scripts/validate_completion_telemetry.py",
         "spec-kit/preset/preset.yml",
         "spec-kit/preset/templates/spec-template.md",
         "spec-kit/preset/templates/scope-assessment-template.yaml",

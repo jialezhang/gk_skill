@@ -280,7 +280,7 @@ class CandidateEvidenceTests(unittest.TestCase):
     @staticmethod
     def manifest() -> dict[str, object]:
         return {
-            "schema_version": "1.0",
+            "schema_version": "1.1",
             "program_id": "program-1",
             "candidate_commit": "abc123",
             "production_fingerprint": "build-1",
@@ -294,13 +294,55 @@ class CandidateEvidenceTests(unittest.TestCase):
                     "proves": ["AC-001", "AC-002"],
                     "provider_mode": "sandbox",
                     "status": "passed",
+                    "evidence_id": "EV-SC-001",
                 }
             ],
             "invalidations": [],
+            "evidence_records": [
+                {
+                    "evidence_id": "EV-SC-001",
+                    "kind": "scenario",
+                    "status": "accepted",
+                    "candidate_commit": "abc123",
+                    "evidence_path": "evidence/scenario.txt",
+                },
+                {
+                    "evidence_id": "EV-FULL",
+                    "kind": "full_verification",
+                    "status": "accepted",
+                    "candidate_commit": "abc123",
+                    "evidence_path": "evidence/full.txt",
+                },
+                {
+                    "evidence_id": "EV-FINAL",
+                    "kind": "final_acceptance",
+                    "status": "accepted",
+                    "candidate_commit": "abc123",
+                    "evidence_path": "evidence/final.txt",
+                },
+            ],
+            "runtime_provenance": {
+                "status": "verified",
+                "candidate_commit": "abc123",
+                "target_kind": "service",
+                "evidence_path": "evidence/runtime.json",
+                "observed_at": "2026-07-23T00:00:00Z",
+                "required_observation_ids": ["launch", "process", "build", "target", "cleanup"],
+                "observations": [
+                    {
+                        "observation_id": item,
+                        "status": "passed",
+                        "source": f"evidence/{item}.txt",
+                    }
+                    for item in ("launch", "process", "build", "target", "cleanup")
+                ],
+                "not_applicable_reason": "",
+            },
             "full_verification": {
                 "candidate_commit": "abc123",
                 "passed": True,
                 "evidence_path": "evidence/full.txt",
+                "evidence_id": "EV-FULL",
             },
             "final_acceptance": {
                 "candidate_commit": "abc123",
@@ -310,6 +352,7 @@ class CandidateEvidenceTests(unittest.TestCase):
                 "implementation_thread_ids": ["implementation-1"],
                 "independence_verified": True,
                 "verdict": "TARGET_VERIFIED",
+                "evidence_id": "EV-FINAL",
             },
         }
 
@@ -324,12 +367,35 @@ class CandidateEvidenceTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("CANDIDATE_EVIDENCE_MISMATCH", result.stderr)
 
+    def test_invalidated_evidence_cannot_back_a_passed_scenario(self) -> None:
+        manifest = self.manifest()
+        manifest["evidence_records"][0].update(
+            {
+                "status": "invalidated",
+                "invalidation_reason": "candidate changed",
+                "invalidated_by": "commit:def456",
+            }
+        )
+        manifest["execution_scenarios"][0]["evidence_id"] = "EV-SC-001"
+        result = self.validate(manifest)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("referenced evidence is not accepted", result.stderr)
+
+    def test_runtime_provenance_must_match_candidate(self) -> None:
+        manifest = self.manifest()
+        manifest["runtime_provenance"]["candidate_commit"] = "older"
+        result = self.validate(manifest)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("RUNTIME_PROVENANCE_CANDIDATE_MISMATCH", result.stderr)
+
 
 class CompletionGateTests(unittest.TestCase):
     @staticmethod
-    def terminal_delivery_state(program_path: Path, candidate_path: Path) -> str:
+    def terminal_delivery_state(
+        program_path: Path, candidate_path: Path, telemetry_path: Path
+    ) -> str:
         return f"""\
-schema_version: "1.1"
+schema_version: "1.2"
 delivery_id: "delivery-1"
 status: GOAL_TARGET_VERIFIED
 controller:
@@ -396,6 +462,13 @@ test_evidence:
   baseline_manifest: "baseline.json"
   impact_map: "impact.json"
   evidence_index: "evidence.json"
+completion_telemetry:
+  status: captured
+  snapshot_path: "{telemetry_path}"
+  captured_at: "2026-07-23T00:00:00Z"
+  capture_event: before_terminal_transition
+  source: runtime_turn_telemetry
+  unavailable_fields: []
 escalations: []
 decisions: []
 evidence: []
@@ -541,11 +614,29 @@ updated_at: "2026-07-23T00:00:00Z"
             ]
             candidate = root / "candidate-evidence.json"
             candidate.write_text(json.dumps(candidate_manifest), encoding="utf-8")
+            telemetry = root / "completion-telemetry.json"
+            telemetry.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "1.1",
+                        "by_model": {},
+                        "by_phase": {},
+                        "completion_snapshot": {
+                            "status": "captured",
+                            "capture_event": "before_terminal_transition",
+                            "captured_at": "2026-07-23T00:00:00Z",
+                            "source": "runtime_turn_telemetry",
+                            "unavailable_fields": [],
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
             program = root / "program-state.yaml"
             program.write_text(ProgramLifecycleTests.complete_state(), encoding="utf-8")
             delivery = root / "delivery-state.yaml"
             delivery.write_text(
-                self.terminal_delivery_state(program, candidate),
+                self.terminal_delivery_state(program, candidate, telemetry),
                 encoding="utf-8",
             )
             result = run_script(
@@ -694,6 +785,33 @@ class TelemetryTests(unittest.TestCase):
         self.assertEqual(report["by_model"]["gpt-5.6-terra"]["total_tokens"], 180)
         self.assertEqual(report["by_model"]["gpt-5.6-terra"]["cached_input_tokens"], 40)
         self.assertEqual(report["turns"][0]["elapsed_seconds"], 5.0)
+
+    def test_completion_snapshot_marks_missing_turns_unavailable(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            routing = root / "routing.jsonl"
+            routing.write_text(
+                json.dumps(
+                    routing_record("turn-missing", "implementation", "gpt-5.6-terra")
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            output = root / "completion-telemetry.json"
+            result = run_script(
+                "scripts/collect_delivery_telemetry.py",
+                str(routing),
+                "--sessions-root",
+                str(root / "sessions"),
+                "--archived-root",
+                str(root / "archived"),
+                "--completion-snapshot",
+                "--output",
+                str(output),
+            )
+            validation = run_script("scripts/validate_completion_telemetry.py", str(output))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(validation.returncode, 0, validation.stderr)
 
 
 if __name__ == "__main__":

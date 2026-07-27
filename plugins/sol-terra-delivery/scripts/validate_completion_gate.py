@@ -77,6 +77,13 @@ def yaml_scalar(path: Path, section: str, key: str) -> str | None:
     return scalar.group(1).strip() if scalar else None
 
 
+def resolve_state_path(state: Path, value: str | None) -> Path | None:
+    if not value:
+        return None
+    path = Path(value)
+    return path if path.is_absolute() else state.parent / path
+
+
 def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -128,6 +135,18 @@ def main() -> int:
             str(args.archived_root),
         )
     )
+    telemetry_path = resolve_state_path(
+        args.delivery_state,
+        yaml_scalar(args.delivery_state, "completion_telemetry", "snapshot_path"),
+    )
+    if telemetry_path is None:
+        errors.append("delivery state completion telemetry snapshot_path is missing")
+    elif not telemetry_path.is_file():
+        errors.append(f"completion telemetry snapshot not found: {telemetry_path}")
+    else:
+        errors.extend(
+            run_validator("scripts/validate_completion_telemetry.py", str(telemetry_path))
+        )
     errors.extend(
         run_validator(
             "skills/goal-driven-delivery/scripts/validate_delivery_state.py",

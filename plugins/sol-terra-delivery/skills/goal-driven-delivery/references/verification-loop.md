@@ -11,13 +11,13 @@
 ## Verification sequence
 
 1. confirm artifact revisions, model-routing records, and exact clean build/commit;
-2. confirm requested target identity, user/owner, flags, data, and providers;
+2. confirm requested target identity, user/owner, flags, data, providers, and runtime provenance requirements;
 3. reuse valid same-candidate evidence, then run missing `fast` checks;
 4. run affected `change` boundaries and 阶段真实用户旅程;
 5. run `full` regression/build only after candidate freeze or a documented risk trigger;
 6. execute exact-target journey where the gate requires it;
 7. inspect authoritative persisted facts and user-visible results;
-8. attach raw outputs/screenshots/logs and record unexecuted checks;
+8. attach raw outputs/screenshots/logs, record runtime provenance, classify produced evidence, and record unexecuted checks;
 9. compare diff with scope and forbidden constraints.
 10. confirm the checkpoint commit is pushed and its progress report is recorded.
 
@@ -26,5 +26,6 @@
 - Behavior wrong, contract unchanged → local rework.
 - Test invalid or flaky → test-engineer repair, then rerun.
 - Evidence contradicts baseline → plan escalation.
+- Runtime provenance missing, mismatched, or occupied by another process → invalidate that run as diagnostic and relaunch the exact target.
 - Exact target unavailable → verification blocked; do not substitute.
 - Product acceptance impossible without changed outcome → user decision.

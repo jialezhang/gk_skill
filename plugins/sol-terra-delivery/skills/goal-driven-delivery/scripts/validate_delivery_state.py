@@ -31,6 +31,7 @@ REQUIRED_TOP_LEVEL = {
     "candidate",
     "stage_user_journeys",
     "test_evidence",
+    "completion_telemetry",
     "escalations",
     "decisions",
     "evidence",
@@ -152,6 +153,27 @@ def main() -> int:
             )
             if not match or not match.group(1).strip():
                 errors.append(f"terminal Goal requires test_evidence.{key}")
+        telemetry_match = re.search(
+            r"(?ms)^completion_telemetry:\s*\n(.*?)(?=^[a-zA-Z0-9_]+:|\Z)",
+            text,
+        )
+        telemetry_block = telemetry_match.group(1) if telemetry_match else ""
+        telemetry_status = re.search(
+            r"^\s{2}status:\s*([a-z_]+)\s*$", telemetry_block, re.MULTILINE
+        )
+        if not telemetry_status or telemetry_status.group(1) not in {
+            "captured",
+            "captured_with_unavailable",
+        }:
+            errors.append("terminal Goal requires completion_telemetry.status: captured")
+        for key in ("snapshot_path", "captured_at", "source"):
+            match = re.search(
+                rf'^\s{{2}}{key}:\s*["\']?([^"\'\n]*)',
+                telemetry_block,
+                re.MULTILINE,
+            )
+            if not match or not match.group(1).strip():
+                errors.append(f"terminal Goal requires completion_telemetry.{key}")
 
     progress_match = re.search(
         r"(?ms)^progress:\s*\n(.*?)(?=^[a-zA-Z0-9_]+:|\Z)",

@@ -7,7 +7,7 @@ import argparse
 import json
 import sys
 from collections import defaultdict
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -109,6 +109,11 @@ def main() -> int:
     )
     parser.add_argument("--output", type=Path)
     parser.add_argument("--require-complete", action="store_true")
+    parser.add_argument(
+        "--completion-snapshot",
+        action="store_true",
+        help="mark this report as captured immediately before a terminal Goal transition",
+    )
     args = parser.parse_args()
 
     if not args.routing_log.is_file():
@@ -191,14 +196,26 @@ def main() -> int:
             for token_key in TOKEN_FIELDS:
                 bucket[token_key] += (turn.get("tokens") or {}).get(token_key, 0)
 
-    report = {
-        "schema_version": "1.0",
+    report: dict[str, Any] = {
+        "schema_version": "1.1",
         "routing_log": str(args.routing_log),
         "turns": turns,
         "by_model": dict(sorted(by_model.items())),
         "by_phase": dict(sorted(by_phase.items())),
         "missing_turns": missing,
     }
+    if args.completion_snapshot:
+        unavailable = [
+            f"turn:{item['thread_id']}:{item['turn_id']}:{item['reason']}"
+            for item in missing
+        ]
+        report["completion_snapshot"] = {
+            "status": "captured_with_unavailable" if unavailable else "captured",
+            "capture_event": "before_terminal_transition",
+            "captured_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+            "source": "runtime_turn_telemetry",
+            "unavailable_fields": unavailable,
+        }
     rendered = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)

@@ -17,6 +17,151 @@ PROVIDER_MODES = {
     "not_applicable",
 }
 
+EVIDENCE_STATUSES = {
+    "draft",
+    "candidate",
+    "accepted",
+    "invalidated",
+    "superseded",
+}
+
+PROVENANCE_STATUSES = {
+    "pending",
+    "verified",
+    "not_applicable",
+    "invalidated",
+}
+
+
+def requires_lifecycle(data: dict[str, object]) -> bool:
+    """Keep 1.0 manifests readable while enforcing the 1.1 contract."""
+    version = data.get("schema_version")
+    if not isinstance(version, str):
+        return "evidence_records" in data or "runtime_provenance" in data
+    try:
+        return tuple(int(part) for part in version.split(".")[:2]) >= (1, 1)
+    except ValueError:
+        return "evidence_records" in data or "runtime_provenance" in data
+
+
+def validate_lifecycle(
+    data: dict[str, object],
+    candidate: object,
+    scenarios: list[object],
+    errors: list[str],
+) -> dict[str, dict[str, object]]:
+    records = data.get("evidence_records")
+    if not isinstance(records, list):
+        errors.append("evidence_records must be a list")
+        return {}
+
+    by_id: dict[str, dict[str, object]] = {}
+    for index, record in enumerate(records, 1):
+        if not isinstance(record, dict):
+            errors.append(f"evidence record #{index} must be an object")
+            continue
+        evidence_id = record.get("evidence_id")
+        if not isinstance(evidence_id, str) or not evidence_id:
+            errors.append(f"evidence record #{index} missing evidence_id")
+            continue
+        if evidence_id in by_id:
+            errors.append(f"duplicate evidence_id: {evidence_id}")
+            continue
+        by_id[evidence_id] = record
+        status = record.get("status")
+        if status not in EVIDENCE_STATUSES:
+            errors.append(f"{evidence_id}: invalid evidence status")
+        if not isinstance(record.get("kind"), str) or not record.get("kind"):
+            errors.append(f"{evidence_id}: missing kind")
+        if not isinstance(record.get("evidence_path"), str) or not record.get("evidence_path"):
+            errors.append(f"{evidence_id}: missing evidence_path")
+        if status == "accepted" and record.get("candidate_commit") != candidate:
+            errors.append(f"{evidence_id}: ACCEPTED_EVIDENCE_CANDIDATE_MISMATCH")
+        if status == "invalidated":
+            if not record.get("invalidation_reason") or not record.get("invalidated_by"):
+                errors.append(f"{evidence_id}: invalidated evidence requires reason and invalidated_by")
+        if status == "superseded" and not record.get("replacement_evidence_id"):
+            errors.append(f"{evidence_id}: superseded evidence requires replacement_evidence_id")
+
+    for evidence_id, record in by_id.items():
+        replacement = record.get("replacement_evidence_id")
+        if replacement and replacement not in by_id:
+            errors.append(f"{evidence_id}: replacement_evidence_id does not exist")
+
+    def require_accepted(reference: object, label: str) -> None:
+        if not isinstance(reference, str) or not reference:
+            errors.append(f"{label}: evidence_id is required")
+            return
+        record = by_id.get(reference)
+        if record is None:
+            errors.append(f"{label}: evidence_id is unknown")
+        elif record.get("status") != "accepted":
+            errors.append(f"{label}: referenced evidence is not accepted")
+
+    for index, scenario in enumerate(scenarios, 1):
+        if isinstance(scenario, dict) and scenario.get("status") == "passed":
+            require_accepted(scenario.get("evidence_id"), str(scenario.get("scenario_id") or index))
+    full = data.get("full_verification")
+    if isinstance(full, dict) and full.get("passed") is True:
+        require_accepted(full.get("evidence_id"), "full_verification")
+    acceptance = data.get("final_acceptance")
+    if isinstance(acceptance, dict) and acceptance.get("verdict") == "TARGET_VERIFIED":
+        require_accepted(acceptance.get("evidence_id"), "final_acceptance")
+    return by_id
+
+
+def validate_runtime_provenance(
+    data: dict[str, object], candidate: object, errors: list[str]
+) -> None:
+    provenance = data.get("runtime_provenance")
+    if not isinstance(provenance, dict):
+        errors.append("runtime_provenance must be an object")
+        return
+    status = provenance.get("status")
+    if status not in PROVENANCE_STATUSES:
+        errors.append("runtime_provenance has invalid status")
+        return
+    if status == "not_applicable":
+        if not provenance.get("not_applicable_reason"):
+            errors.append("runtime_provenance not_applicable requires not_applicable_reason")
+        return
+    if status != "verified":
+        errors.append(f"runtime_provenance must be verified, got {status!r}")
+        return
+    if provenance.get("candidate_commit") != candidate:
+        errors.append("RUNTIME_PROVENANCE_CANDIDATE_MISMATCH")
+    for key in ("target_kind", "evidence_path", "observed_at"):
+        if not isinstance(provenance.get(key), str) or not provenance.get(key):
+            errors.append(f"runtime_provenance verified requires {key}")
+    required = provenance.get("required_observation_ids")
+    observations = provenance.get("observations")
+    if not isinstance(required, list) or not all(isinstance(item, str) and item for item in required):
+        errors.append("runtime_provenance required_observation_ids must be non-empty strings")
+        required = []
+    if not isinstance(observations, list):
+        errors.append("runtime_provenance observations must be a list")
+        observations = []
+    observed: dict[str, object] = {}
+    for index, observation in enumerate(observations, 1):
+        if not isinstance(observation, dict):
+            errors.append(f"runtime provenance observation #{index} must be an object")
+            continue
+        observation_id = observation.get("observation_id")
+        if not isinstance(observation_id, str) or not observation_id:
+            errors.append(f"runtime provenance observation #{index} missing observation_id")
+            continue
+        if observation_id in observed:
+            errors.append(f"duplicate runtime provenance observation_id: {observation_id}")
+        observed[observation_id] = observation
+        if observation.get("status") not in {"passed", "failed", "not_applicable"}:
+            errors.append(f"{observation_id}: invalid runtime provenance observation status")
+        if not isinstance(observation.get("source"), str) or not observation.get("source"):
+            errors.append(f"{observation_id}: runtime provenance observation requires source")
+    for observation_id in required:
+        observation = observed.get(observation_id)
+        if not isinstance(observation, dict) or observation.get("status") != "passed":
+            errors.append(f"runtime_provenance required observation is not passed: {observation_id}")
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -80,6 +225,12 @@ def main() -> int:
     status = data.get("status")
     if status == "target_verified" and unresolved:
         errors.append("candidate has unresolved evidence invalidations")
+
+    lifecycle_required = requires_lifecycle(data)
+    if lifecycle_required:
+        validate_lifecycle(data, candidate, scenarios, errors)
+        if status == "target_verified" and not args.allow_incomplete:
+            validate_runtime_provenance(data, candidate, errors)
 
     if status == "target_verified" and not args.allow_incomplete:
         missing = sorted(set(str(item) for item in claims) - covered)

@@ -19,6 +19,10 @@ REQUIRED = {
     "clean_worktree",
     "full_verification_passed",
     "candidate_evidence_valid",
+    "evidence_lifecycle_valid",
+    "runtime_provenance",
+    "goal_telemetry_snapshots",
+    "completion_telemetry",
     "final_acceptance_model",
     "final_acceptance_thread_id",
     "final_acceptance_turn_id",
@@ -58,7 +62,14 @@ def main() -> int:
                 errors.append(f"goal #{index} must be an object")
                 continue
             goal_id = goal.get("goal_id") or f"#{index}"
-            for key in ("commit_sha", "pushed", "target_verified", "model_routing_valid"):
+            for key in (
+                "commit_sha",
+                "pushed",
+                "target_verified",
+                "model_routing_valid",
+                "evidence_lifecycle_valid",
+                "completion_telemetry_snapshot",
+            ):
                 if key not in goal:
                     errors.append(f"{goal_id}: missing {key}")
             if not goal.get("commit_sha"):
@@ -69,6 +80,10 @@ def main() -> int:
                 errors.append(f"{goal_id}: bounded target is not verified")
             if goal.get("model_routing_valid") is not True:
                 errors.append(f"{goal_id}: model routing is not valid")
+            if goal.get("evidence_lifecycle_valid") is not True:
+                errors.append(f"{goal_id}: evidence lifecycle is not valid")
+            if not goal.get("completion_telemetry_snapshot"):
+                errors.append(f"{goal_id}: completion telemetry snapshot is missing")
 
     if not args.allow_empty:
         if not data.get("integration_commit"):
@@ -81,6 +96,39 @@ def main() -> int:
             errors.append("program_state has not validated")
         if data.get("candidate_evidence_valid") is not True:
             errors.append("candidate evidence has not validated")
+        if data.get("evidence_lifecycle_valid") is not True:
+            errors.append("integration evidence lifecycle has not validated")
+        provenance = data.get("runtime_provenance")
+        if not isinstance(provenance, dict):
+            errors.append("runtime_provenance must be an object")
+        else:
+            if provenance.get("status") != "verified":
+                errors.append("integration runtime provenance has not verified")
+            if provenance.get("candidate_commit") != data.get("integration_commit"):
+                errors.append("integration runtime provenance candidate does not match")
+            if not provenance.get("evidence_path"):
+                errors.append("integration runtime provenance evidence_path is required")
+        telemetry = data.get("goal_telemetry_snapshots")
+        if not isinstance(telemetry, list) or not telemetry:
+            errors.append("goal_telemetry_snapshots must be a non-empty list")
+        else:
+            telemetry_goal_ids = {
+                item.get("goal_id")
+                for item in telemetry
+                if isinstance(item, dict) and item.get("snapshot_path")
+            }
+            for goal in goals if isinstance(goals, list) else []:
+                if isinstance(goal, dict) and goal.get("goal_id") not in telemetry_goal_ids:
+                    errors.append(f"{goal.get('goal_id')}: telemetry snapshot is not aggregated")
+        completion = data.get("completion_telemetry")
+        if not isinstance(completion, dict):
+            errors.append("completion_telemetry must be an object")
+        else:
+            if completion.get("status") not in {"captured", "captured_with_unavailable"}:
+                errors.append("integration completion telemetry has not captured")
+            for key in ("snapshot_path", "captured_at", "source"):
+                if not completion.get(key):
+                    errors.append(f"integration completion telemetry requires {key}")
         if data.get("final_acceptance_model") != "gpt-5.6-terra":
             errors.append("TERRA_FINAL_ACCEPTANCE_REQUIRED")
         acceptance_thread = data.get("final_acceptance_thread_id")
