@@ -3,20 +3,25 @@
 ## Program state machine
 
 ```text
-DISCOVERY_IN_PROGRESS
-→ DISCOVERY_READY
-→ PRD_DRAFT
-→ REVIEW_REQUIRED
-→ APPROVED
-→ SCOPE_ASSESSMENT
-→ GOAL_BOUNDARIES_DECIDED
-→ PLAN_DRAFT
-→ PLAN_REVIEW_REQUIRED
-→ PLAN_APPROVED
-→ DELIVERY_ACTIVE
-→ GATE_REVIEW
-→ TARGET_VERIFIED
-→ COMPLETE
+ROUTING_DECISION_PENDING
+├─ PRD_NOT_REQUIRED
+│  → TECHNICAL_CHANGE_ACTIVE
+│  → TECHNICAL_CHANGE_VERIFIED
+└─ PRD_REQUIRED
+   → DISCOVERY_IN_PROGRESS
+   → DISCOVERY_READY
+   → PRD_DRAFT
+   → REVIEW_REQUIRED
+   → APPROVED
+   → SCOPE_ASSESSMENT
+   → GOAL_BOUNDARIES_DECIDED
+   → PLAN_DRAFT
+   → PLAN_REVIEW_REQUIRED
+   → PLAN_APPROVED
+   → DELIVERY_ACTIVE
+   → GATE_REVIEW
+   → TARGET_VERIFIED
+   → COMPLETE
 ```
 
 For a multi-Goal delivery, keep one runtime Program Goal active for the full lifecycle. Goal sessions are milestones:
@@ -91,6 +96,10 @@ Change only the plan for module layout, SDK behavior, task order, test mechanics
 
 Reopen the PRD for changed user flows, P0/P1 scope, product invariants, safety rules, data ownership, acceptance outcomes, release scope, or significant cost.
 
-## Small-task bypass
+## Technical-change lane
 
-For a local, reversible change with clear acceptance and no cross-boundary risk, bypass the full product lifecycle. Do not manufacture a PRD to justify ordinary maintenance.
+Use the technical-change lane only after the user explicitly chooses `PRD_NOT_REQUIRED`. It is suitable for technical work whose observable product outcomes and governed boundaries remain unchanged. Record a bounded objective, constraints, acceptance checks, and rollback when relevant in the current task context; a PRD, scope assessment, Goal plan, and Program state are not prerequisites.
+
+Execute with ordinary repository inspection, proportionate planning, local edits, tests, and verification. Do not invoke the PRD-dependent governed delivery skills or manufacture durable governance artifacts for ordinary maintenance.
+
+If implementation reveals a change to user flows, P0/P1 scope, public contracts, product invariants, safety/compliance, data ownership, release scope, significant cost, or materially ambiguous acceptance, stop and return to `ROUTING_DECISION_PENDING`. The earlier `PRD_NOT_REQUIRED` decision does not authorize a wider product change.

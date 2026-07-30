@@ -12,7 +12,10 @@
 | Evidence | Next stage |
 | --- | --- |
 | No discovery and intent materially ambiguous | `grill-me` |
-| Discovery complete, no PRD | current main agent runs `create-product-prd` |
+| Technical-change candidate, no PRD decision | ask whether PRD is needed; include a recommendation and rationale |
+| User chooses `PRD_NOT_REQUIRED` | record the choice and enter the technical-change lane |
+| User chooses `PRD_REQUIRED`, no PRD | current main agent runs `create-product-prd` |
+| Request crosses a governed product boundary, no PRD | explain why a PRD is required, then run `create-product-prd` |
 | PRD `DRAFT` or `CHANGE_REQUESTED` | current main agent revises PRD |
 | PRD `REVIEW_REQUIRED` | wait for user approval |
 | PRD `APPROVED`, no matching scope assessment | `assess-goal-scope` |
@@ -32,7 +35,13 @@
 
 ## Stage invariants
 
-- Do not generate a plan from an unapproved PRD.
+- Do not infer `PRD_NOT_REQUIRED` from silence, task size, or the absence of a Spec Kit feature.
+- Do not invoke `assess-goal-scope` from the technical-change lane.
+- Do not invoke `create-implementation-plan` from the technical-change lane.
+- Do not invoke `goal-driven-delivery` from the technical-change lane; those skills validate a governed PRD/plan lifecycle.
+- Keep technical-change planning lightweight and proportionate: pin the objective, constraints, affected boundary, acceptance checks, and rollback when relevant, then inspect, edit, test, and verify directly.
+- If implementation evidence reveals a user-visible outcome, public-contract, safety/compliance, data-ownership, release-scope, or significant-cost change, stop the technical-change lane and reclassify the task before continuing.
+- Do not generate a governed plan from an unapproved PRD.
 - Do not create a Goal from an unapproved plan.
 - Do not let approval survive a material content revision without explicit reapproval.
 - Do not let Spec Kit Workflow and native Goal delivery both schedule implementation.

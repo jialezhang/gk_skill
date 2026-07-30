@@ -45,6 +45,21 @@ def routing_record(
     return record
 
 
+def terra_fallback_attempts(
+    controller_thread_id: str = "thread-1",
+    call_prefix: str = "spawn-terra",
+) -> list[dict[str, object]]:
+    return [
+        {
+            "attempt": attempt,
+            "spawn_controller_thread_id": controller_thread_id,
+            "spawn_call_id": f"{call_prefix}-{attempt}",
+            "failure_reason": "handshake_not_verified",
+        }
+        for attempt in range(1, 4)
+    ]
+
+
 class ModelHandshakeTests(unittest.TestCase):
     def validate(self, records: list[dict[str, object]], *args: str) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory() as tmp:
@@ -89,6 +104,38 @@ class ModelHandshakeTests(unittest.TestCase):
         result = self.validate([handshake], "--require-handshake")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("NATIVE_FULL_HISTORY_MODEL_OVERRIDE_FORBIDDEN", result.stderr)
+
+    def test_native_handshake_can_require_permission_inheritance_evidence(self) -> None:
+        handshake = routing_record(
+            "handshake-1",
+            "routing_handshake",
+            "gpt-5.6-terra",
+            phase="handshake",
+            write_allowed=False,
+            routing_surface="native_subagent",
+            model_selection_scope="context_creation",
+            fork_turns="none",
+            parent_permission_mode="bypassPermissions",
+            observed_permission_mode="bypassPermissions",
+            permission_inherited=True,
+            permission_source="hook.SubagentStart.permission_mode",
+            route_guard_nonce="0123456789abcdef01234567",
+        )
+        result = self.validate(
+            [handshake],
+            "--require-handshake",
+            "--require-permission-inheritance",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        handshake["observed_permission_mode"] = "default"
+        result = self.validate(
+            [handshake],
+            "--require-handshake",
+            "--require-permission-inheritance",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("PERMISSION_INHERITANCE_MISMATCH", result.stderr)
 
     def test_terra_task_name_does_not_override_runtime_model(self) -> None:
         record = routing_record(
@@ -177,6 +224,122 @@ class ModelHandshakeTests(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("MODEL_HANDSHAKE_REQUIRED", result.stderr)
+
+    def test_main_agent_continues_with_current_model_when_terra_switch_fails(self) -> None:
+        fallback = routing_record(
+            "implementation-fallback-1",
+            "implementation",
+            "gpt-5.6-sol",
+            allowed_reason="terra_route_fallback",
+            routing_surface="main_agent",
+            model_selection_scope="current_context",
+            write_allowed=True,
+            fallback_attempted=True,
+            fallback_from_model="gpt-5.6-terra",
+            fallback_attempts=terra_fallback_attempts(),
+        )
+        result = self.validate([fallback], "--require-handshake")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_main_agent_cannot_claim_fallback_without_a_terra_attempt(self) -> None:
+        fallback = routing_record(
+            "implementation-fallback-1",
+            "implementation",
+            "gpt-5.6-sol",
+            allowed_reason="terra_route_fallback",
+            routing_surface="main_agent",
+            model_selection_scope="current_context",
+            write_allowed=True,
+        )
+        result = self.validate([fallback], "--require-handshake")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("TERRA_FALLBACK_EVIDENCE_REQUIRED", result.stderr)
+
+    def test_main_agent_cannot_fallback_after_only_two_terra_attempts(self) -> None:
+        fallback = routing_record(
+            "implementation-fallback-1",
+            "implementation",
+            "gpt-5.6-sol",
+            allowed_reason="terra_route_fallback",
+            routing_surface="main_agent",
+            model_selection_scope="current_context",
+            write_allowed=True,
+            fallback_attempted=True,
+            fallback_from_model="gpt-5.6-terra",
+            fallback_attempts=terra_fallback_attempts()[:2],
+        )
+        result = self.validate([fallback], "--require-handshake")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("TERRA_FALLBACK_REQUIRES_THREE_ATTEMPTS", result.stderr)
+
+    def test_fallback_runtime_evidence_proves_the_failed_terra_spawn_attempt(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sessions = root / "sessions"
+            sessions.mkdir()
+            fallback = routing_record(
+                "implementation-fallback-1",
+                "implementation",
+                "gpt-5.6-sol",
+                allowed_reason="terra_route_fallback",
+                routing_surface="main_agent",
+                model_selection_scope="current_context",
+                write_allowed=True,
+                fallback_attempted=True,
+                fallback_from_model="gpt-5.6-terra",
+                fallback_attempts=terra_fallback_attempts(),
+            )
+            routing = root / "routing.jsonl"
+            routing.write_text(json.dumps(fallback) + "\n", encoding="utf-8")
+            (sessions / "rollout-thread-1.jsonl").write_text(
+                "\n".join(
+                    [
+                        json.dumps(
+                            {
+                                "type": "turn_context",
+                                "payload": {
+                                    "turn_id": "implementation-fallback-1",
+                                    "model": "gpt-5.6-sol",
+                                },
+                            }
+                        ),
+                        *[
+                            json.dumps(
+                                {
+                                    "type": "response_item",
+                                    "payload": {
+                                        "type": "function_call",
+                                        "namespace": "collaboration",
+                                        "name": "spawn_agent",
+                                        "call_id": f"spawn-terra-{attempt}",
+                                        "arguments": json.dumps(
+                                            {
+                                                "task_name": "terra_implementation",
+                                                "model": "gpt-5.6-terra",
+                                                "fork_turns": "none",
+                                            }
+                                        ),
+                                    },
+                                }
+                            )
+                            for attempt in range(1, 4)
+                        ],
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            result = run_script(
+                "scripts/validate_model_routing.py",
+                str(routing),
+                "--require-handshake",
+                "--require-runtime-evidence",
+                "--sessions-root",
+                str(sessions),
+                "--archived-root",
+                str(root / "archived"),
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_luna_cannot_run_browser_acceptance(self) -> None:
         result = self.validate(
@@ -362,7 +525,13 @@ class CandidateEvidenceTests(unittest.TestCase):
 
     def test_candidate_mismatch_invalidates_evidence(self) -> None:
         manifest = self.manifest()
-        manifest["execution_scenarios"][0]["candidate_commit"] = "older"
+        scenarios = manifest["execution_scenarios"]
+        self.assertIsInstance(scenarios, list)
+        assert isinstance(scenarios, list)
+        scenario = scenarios[0]
+        self.assertIsInstance(scenario, dict)
+        assert isinstance(scenario, dict)
+        scenario["candidate_commit"] = "older"
         result = self.validate(manifest)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("CANDIDATE_EVIDENCE_MISMATCH", result.stderr)
@@ -533,6 +702,15 @@ updated_at: "2026-07-23T00:00:00Z"
                     fork_turns="none",
                     spawn_controller_thread_id="controller-thread",
                     spawn_call_id=spawn_call_id,
+                    parent_permission_mode="bypassPermissions",
+                    observed_permission_mode="bypassPermissions",
+                    permission_inherited=True,
+                    permission_source="hook.SubagentStart.permission_mode",
+                    route_guard_nonce=(
+                        "0123456789abcdef01234567"
+                        if thread_id == "impl-thread"
+                        else "89abcdef0123456789abcdef"
+                    ),
                 )
             )
             extra: dict[str, object] = {"handshake_turn_id": handshake_id}
@@ -552,12 +730,14 @@ updated_at: "2026-07-23T00:00:00Z"
             )
         return records
 
-    def test_complete_raw_evidence_gate_passes(self) -> None:
+    def run_complete_gate(
+        self,
+        records: list[dict[str, object]],
+    ) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             sessions = root / "sessions"
             sessions.mkdir()
-            records = self.complete_routing_records()
             routing = root / "model-routing.jsonl"
             routing.write_text(
                 "".join(json.dumps(record) + "\n" for record in records),
@@ -584,6 +764,13 @@ updated_at: "2026-07-23T00:00:00Z"
                     ),
                     encoding="utf-8",
                 )
+            spawn_specs = [
+                ("impl-thread", "spawn-impl-thread"),
+                ("impl-thread", "spawn-impl-thread-1"),
+                ("impl-thread", "spawn-impl-thread-2"),
+                ("impl-thread", "spawn-impl-thread-3"),
+                ("reviewer-1", "spawn-reviewer-1"),
+            ]
             spawn_events = [
                 {
                     "type": "response_item",
@@ -591,25 +778,27 @@ updated_at: "2026-07-23T00:00:00Z"
                         "type": "function_call",
                         "namespace": "collaboration",
                         "name": "spawn_agent",
-                        "call_id": f"spawn-{thread_id}",
+                        "call_id": call_id,
                         "arguments": json.dumps(
                             {
                                 "task_name": thread_id,
-                                "agent_type": "executor",
                                 "fork_turns": "none",
                                 "model": "gpt-5.6-terra",
                             }
                         ),
                     },
                 }
-                for thread_id in ("impl-thread", "reviewer-1")
+                for thread_id, call_id in spawn_specs
             ]
             (sessions / "rollout-controller-thread.jsonl").write_text(
                 "".join(json.dumps(event) + "\n" for event in spawn_events),
                 encoding="utf-8",
             )
             candidate_manifest = CandidateEvidenceTests.manifest()
-            candidate_manifest["final_acceptance"]["implementation_thread_ids"] = [
+            final_acceptance = candidate_manifest["final_acceptance"]
+            self.assertIsInstance(final_acceptance, dict)
+            assert isinstance(final_acceptance, dict)
+            final_acceptance["implementation_thread_ids"] = [
                 "impl-thread"
             ]
             candidate = root / "candidate-evidence.json"
@@ -654,6 +843,37 @@ updated_at: "2026-07-23T00:00:00Z"
                 "--archived-root",
                 str(root / "archived"),
             )
+            return result
+
+    def test_complete_raw_evidence_gate_passes(self) -> None:
+        result = self.run_complete_gate(self.complete_routing_records())
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_complete_gate_accepts_audited_main_agent_fallback(self) -> None:
+        records = [
+            record
+            for record in self.complete_routing_records()
+            if record.get("turn_id") not in {"impl-handshake", "implementation-turn"}
+        ]
+        records.append(
+            routing_record(
+                "implementation-fallback-1",
+                "implementation",
+                "gpt-5.6-sol",
+                thread_id="impl-thread",
+                allowed_reason="terra_route_fallback",
+                routing_surface="main_agent",
+                model_selection_scope="current_context",
+                write_allowed=True,
+                fallback_attempted=True,
+                fallback_from_model="gpt-5.6-terra",
+                fallback_attempts=terra_fallback_attempts(
+                    "controller-thread",
+                    "spawn-impl-thread",
+                ),
+            )
+        )
+        result = self.run_complete_gate(records)
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_declared_pass_cannot_replace_raw_runtime_evidence(self) -> None:

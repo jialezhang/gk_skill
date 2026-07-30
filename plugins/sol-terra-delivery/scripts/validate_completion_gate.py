@@ -128,6 +128,7 @@ def main() -> int:
             "--require-canary",
             "--require-transition-canary",
             "--require-handshake",
+            "--require-permission-inheritance",
             "--require-runtime-evidence",
             "--sessions-root",
             str(args.sessions_root),
@@ -210,7 +211,10 @@ def main() -> int:
         str(record.get("thread_id"))
         for record in routing
         if record.get("task_class") in {"implementation", "debugging", "local_rework", "integration"}
-        and record.get("requested_model") == "gpt-5.6-terra"
+        and (
+            record.get("requested_model") == "gpt-5.6-terra"
+            or record.get("allowed_reason") == "terra_route_fallback"
+        )
     }
     if not isinstance(implementation_threads, list) or not implementation_threads:
         errors.append("candidate implementation_thread_ids must be non-empty")

@@ -276,6 +276,36 @@ class ModelRoutingPolicyTests(unittest.TestCase):
 
 
 class DeliveryGovernanceTextTests(unittest.TestCase):
+    def test_technical_change_routes_through_explicit_prd_decision(self) -> None:
+        controller = (SKILL_ROOT / "product-to-delivery" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        routing = (
+            SKILL_ROOT / "product-to-delivery" / "references" / "stage-routing.md"
+        ).read_text(encoding="utf-8")
+        lifecycle = (
+            SKILL_ROOT / "product-to-delivery" / "references" / "lifecycle-contract.md"
+        ).read_text(encoding="utf-8")
+
+        for text in (controller, routing, lifecycle):
+            self.assertIn("PRD_NOT_REQUIRED", text)
+            self.assertIn("technical-change lane", text)
+        self.assertIn("ask whether a PRD is needed", controller)
+        self.assertIn("Silence does not choose", controller)
+        self.assertNotIn(
+            "Discovery complete, no PRD | current main agent runs `create-product-prd`",
+            routing,
+        )
+
+    def test_prd_skip_does_not_enter_prd_dependent_delivery_skills(self) -> None:
+        routing = (
+            SKILL_ROOT / "product-to-delivery" / "references" / "stage-routing.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("Do not invoke `assess-goal-scope`", routing)
+        self.assertIn("Do not invoke `create-implementation-plan`", routing)
+        self.assertIn("Do not invoke `goal-driven-delivery`", routing)
+        self.assertIn("reclassify the task before continuing", routing)
+
     def test_controller_requires_scope_decision_before_plan(self) -> None:
         text = (SKILL_ROOT / "product-to-delivery" / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("$assess-goal-scope", text)

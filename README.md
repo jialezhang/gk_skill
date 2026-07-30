@@ -3,21 +3,22 @@
 An installable Codex plugin and Spec Kit customization for this lifecycle:
 
 ```text
-$grill-me
-→ $create-product-prd
-→ user approves PRD
-→ $assess-goal-scope
-→ user chooses split or single Goal (240s silence defaults to single)
-→ $create-implementation-plan
-→ user approves plan
-→ verified Sol/Terra/Luna routing Canary
-→ one or more $goal-driven-delivery sessions/worktrees
-→ checkpoint commit + push + progress report
-→ $integrate-goals when delivery was split
-→ Luna routine final acceptance
-→ plan conflict escalates to Sol
-→ product conflict escalates to the user
-→ verified completion
+request with no approved PRD
+→ ask whether a PRD is needed
+├─ PRD_NOT_REQUIRED → lightweight technical-change lane → implement, test, verify
+└─ PRD_REQUIRED
+   → $grill-me
+   → $create-product-prd
+   → user approves PRD
+   → $assess-goal-scope
+   → user chooses split or single Goal (240s silence defaults to single)
+   → $create-implementation-plan
+   → user approves plan
+   → verified Sol/Terra/Luna routing Canary
+   → one or more $goal-driven-delivery sessions/worktrees
+   → checkpoint commit + push + progress report
+   → $integrate-goals when delivery was split
+   → verified final acceptance
 ```
 
 The toolkit keeps the two control planes separate:
@@ -75,10 +76,11 @@ $create-implementation-plan
 $goal-driven-delivery
 ```
 
-`$product-to-delivery` is the convenience controller. It selects the current stage and pauses at both human approval gates. Silence never approves a PRD or plan. The only timed default is Goal packaging: after a 240-second unanswered split prompt, delivery remains one Goal and records `timeout_default_single`.
+`$product-to-delivery` is the convenience controller. When no approved PRD exists and the request can remain a technical change, it first asks whether a PRD is needed and gives a recommendation. An explicit `PRD_NOT_REQUIRED` choice enters a lightweight technical-change lane without Spec Kit governance artifacts. The governed lane still pauses at both human approval gates. Silence never chooses the PRD lane, skips a PRD, or approves a PRD/plan. The only timed default is Goal packaging: after a 240-second unanswered split prompt, delivery remains one Goal and records `timeout_default_single`.
 
 ## Delivery policy
 
+- Technical changes may bypass PRD creation only after the user explicitly chooses `PRD_NOT_REQUIRED`; if product or governed risk boundaries emerge, the controller reclassifies before continuing.
 - Scope is inspected before planning. P80 above 8 hours recommends splitting; above 10 hours strongly recommends it. Users may still choose one Goal.
 - Sol handles PRD, scope, planning, and genuine product/plan/architecture/high-risk security conflicts.
 - Terra handles delivery control, implementation, debugging, rework, and integration.

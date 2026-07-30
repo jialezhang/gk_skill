@@ -1,0 +1,41 @@
+{
+  "description": "Proactively validates delegated Terra implementation routing and permission inheritance.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^Agent$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$PLUGIN_ROOT/hooks/terra_route_guard.py\"",
+            "timeout": 5,
+            "statusMessage": "Validating Terra implementation route"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$PLUGIN_ROOT/hooks/terra_route_guard.py\"",
+            "timeout": 5,
+            "statusMessage": "Verifying subagent model and permissions"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$PLUGIN_ROOT/hooks/terra_route_guard.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

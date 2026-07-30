@@ -20,7 +20,12 @@ The program controller owns cross-Goal dependencies, cumulative Agent budget, an
 
 Model identity is a runtime contract. Pass the explicit model on every turn and verify observed metadata; a role name is not evidence.
 
-Every new model context starts with a no-write routing handshake. Do not send repository-write authority or the execution packet until runtime metadata proves the requested model. A mismatch invalidates the turn, quarantines any output as diagnostic only, and requires a new handshake.
+Every new model context starts with a no-write routing handshake. Do not send repository-write
+authority or the execution packet until runtime metadata proves the requested model. A mismatch
+invalidates the delegated turn and quarantines its output as diagnostic only. For
+implementation-class work, discard the failed context and let the current main agent continue with
+its existing model under `terra_route_fallback` only after three sequential handshake attempts
+have failed.
 
 ## Program budget
 

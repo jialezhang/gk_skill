@@ -78,6 +78,8 @@ def main() -> int:
         validate_skill(skill_root / name, errors)
 
     required_files = [
+        "hooks/hooks.json",
+        "hooks/terra_route_guard.py",
         "scripts/validate_completion_gate.py",
         "scripts/validate_completion_telemetry.py",
         "spec-kit/preset/preset.yml",
@@ -92,6 +94,12 @@ def main() -> int:
     ]
     for relative in required_files:
         require((plugin_root / relative).exists(), f"missing {relative}", errors)
+
+    hooks_json = plugin_root / "hooks" / "hooks.json"
+    if hooks_json.exists():
+        hooks = json.loads(hooks_json.read_text(encoding="utf-8")).get("hooks", {})
+        for event in ("PreToolUse", "SubagentStart", "SubagentStop"):
+            require(event in hooks, f"route guard omits {event} hook", errors)
 
     preset = (plugin_root / "spec-kit/preset/preset.yml").read_text(encoding="utf-8")
     extension = (plugin_root / "spec-kit/extension/extension.yml").read_text(encoding="utf-8")

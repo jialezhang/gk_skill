@@ -11,7 +11,9 @@ Thread names and agent roles do not prove model identity. The controller must:
    follow-up turn; on native subagents without that parameter, reuse only the explicitly created,
    verified context and validate every runtime turn;
 5. append immutable handshake and execution records to `model-routing.jsonl`;
-6. quarantine all output after a missing or mismatched route until the work is rerun on the required model.
+6. quarantine all delegated output after a missing or mismatched route; for implementation,
+   debugging, local rework, delivery control, or integration, continue in the current main context
+   with its existing model and record an auditable Terra-route fallback.
 
 Read [native-agent-routing.md](native-agent-routing.md) completely before using Codex native
 subagents. Native model overrides require `fork_turns: "none"` or a positive limited-history
@@ -21,7 +23,7 @@ selection.
 Required handshake record:
 
 ```json
-{"thread_id":"...","turn_id":"handshake-...","task_class":"routing_handshake","routing_surface":"native_subagent","model_selection_scope":"context_creation","fork_turns":"none","spawn_controller_thread_id":"...","spawn_call_id":"...","requested_model":"gpt-5.6-terra","request_explicit":true,"observed_model":"gpt-5.6-terra","observed_source":"rollout.turn_context.payload.model","phase":"handshake","verified":true,"allowed_reason":"routing_canary","write_allowed":false}
+{"thread_id":"...","turn_id":"handshake-...","task_class":"routing_handshake","routing_surface":"native_subagent","model_selection_scope":"context_creation","fork_turns":"none","spawn_controller_thread_id":"...","spawn_call_id":"...","requested_model":"gpt-5.6-terra","request_explicit":true,"observed_model":"gpt-5.6-terra","observed_source":"rollout.turn_context.payload.model","parent_permission_mode":"bypassPermissions","observed_permission_mode":"bypassPermissions","permission_inherited":true,"permission_source":"hook.SubagentStart.permission_mode","route_guard_nonce":"0123456789abcdef01234567","phase":"handshake","verified":true,"allowed_reason":"routing_canary","write_allowed":false}
 ```
 
 Required execution record:
@@ -30,15 +32,50 @@ Required execution record:
 {"thread_id":"...","turn_id":"...","handshake_turn_id":"handshake-...","task_class":"implementation","requested_model":"gpt-5.6-terra","request_explicit":true,"observed_model":"gpt-5.6-terra","observed_source":"rollout.turn_context.payload.model","phase":"execution","verified":true,"allowed_reason":"implementation"}
 ```
 
+Required fallback execution record when the Terra switch fails:
+
+```json
+{
+  "thread_id": "parent-thread",
+  "turn_id": "implementation-fallback-1",
+  "task_class": "implementation",
+  "routing_surface": "main_agent",
+  "model_selection_scope": "current_context",
+  "requested_model": "gpt-5.6-sol",
+  "request_explicit": true,
+  "observed_model": "gpt-5.6-sol",
+  "observed_source": "rollout.turn_context.payload.model",
+  "phase": "execution",
+  "verified": true,
+  "write_allowed": true,
+  "allowed_reason": "terra_route_fallback",
+  "fallback_attempted": true,
+  "fallback_from_model": "gpt-5.6-terra",
+  "fallback_attempts": [
+    {"attempt": 1, "spawn_controller_thread_id": "parent-thread", "spawn_call_id": "spawn-terra-1", "failure_reason": "handshake_not_verified"},
+    {"attempt": 2, "spawn_controller_thread_id": "parent-thread", "spawn_call_id": "spawn-terra-2", "failure_reason": "model_mismatch"},
+    {"attempt": 3, "spawn_controller_thread_id": "parent-thread", "spawn_call_id": "spawn-terra-3", "failure_reason": "route_unavailable"}
+  ]
+}
+```
+
+The current model in this example is Sol only because the parent was already running Sol; use the
+actual previous model. Allowed fallback reasons are `spawn_rejected`, `handshake_not_verified`,
+`model_mismatch`, `permission_mismatch`, `route_guard_error`, and `route_unavailable`. The raw
+controller rollout must contain all three referenced explicit Terra spawn attempts, numbered
+1–3 with distinct call identities. A fallback record with fewer than three valid attempts cannot
+replace the handshake.
+
 Validate with:
 
 ```bash
 python3 scripts/validate_model_routing.py <model-routing.jsonl> \
   --require-handshake \
+  --require-permission-inheritance \
   --require-runtime-evidence
 ```
 
-Run the command from the plugin root. The validator locates the rollout by `thread_id`, matches `turn_id`, and reads every matching `turn_context.payload.model`. For native handshakes it also locates the original controller `spawn_agent` call by `spawn_controller_thread_id` and `spawn_call_id`, then verifies the actual `model` and `fork_turns` arguments. Copied routing fields are not authoritative. Missing, ambiguous, or mismatched runtime evidence fails validation. A rejected record cannot support a gate or completion claim.
+Run the command from the plugin root. The validator locates the rollout by `thread_id`, matches `turn_id`, and reads every matching `turn_context.payload.model`. For native handshakes it also locates the original controller `spawn_agent` call by `spawn_controller_thread_id` and `spawn_call_id`, then verifies the actual `model`, `fork_turns`, and absence of a conflicting `agent_type`. Permission inheritance is recorded by the bundled `SubagentStart` route guard and bound to its one-time nonce. Copied routing fields are not authoritative. Missing, ambiguous, or mismatched runtime evidence fails validation. A rejected record cannot support a gate or completion claim.
 
 ## Live Canary
 
@@ -57,14 +94,23 @@ python3 scripts/validate_model_routing.py <model-routing.jsonl> \
   --require-runtime-evidence
 ```
 
-`MODEL_ROUTE_MISMATCH`, `MODEL_HANDSHAKE_REQUIRED`, `MODEL_HANDSHAKE_SCOPE_MISMATCH`, `RUNTIME_MODEL_MISMATCH`, an implicit follow-up model, unknown task class, missing metadata, or an incomplete Canary blocks delivery. Reinstall/configure the plugin or repair routing before spending implementation tokens.
+`MODEL_ROUTE_MISMATCH`, `MODEL_HANDSHAKE_REQUIRED`, or
+`MODEL_HANDSHAKE_SCOPE_MISMATCH` invalidates the delegated context. For implementation-class work,
+discard it and retry sequentially until three attempts have failed, then continue in the current
+main context using the fallback record above. Do not retry beyond three. Unknown task classes,
+missing runtime evidence, incomplete or forged fallback attempts, and mismatched execution records
+still block delivery evidence.
 
 Use a separate visible Codex task for Luna when the native subagent surface does not expose a Luna model override. A task named “Luna verifier” is not Luna evidence.
 
 ## Role boundaries
 
 - **Sol:** product discovery, PRD authorship, scope assessment, implementation planning, product decisions, architecture/plan contradictions, and high-risk security judgment.
-- **Terra:** implementation, debugging, integration, code-quality review, browser acceptance, 阶段真实用户旅程, runtime/provider-boundary acceptance, and final exact-target acceptance.
+- **Terra:** preferred delegated model for implementation, debugging, integration, and
+  code-quality review; browser acceptance, 阶段真实用户旅程, runtime/provider-boundary acceptance,
+  and final exact-target acceptance retain their explicit Terra requirements. When delegated
+  implementation cannot switch to Terra, the existing main model continues directly under the
+  recorded fallback contract.
 - **Luna:** deterministic low-complexity checks only: focused tests, typecheck, build, diff check, baseline comparison, checklist review, and evidence reconciliation. Luna must not own browser execution, runtime lifecycle judgment, user-experience judgment, or final acceptance.
 
 PRD and implementation-planning use is restricted further: the current main agent must perform all authorship, review, validation, and revision while running on Sol. A controller must not satisfy this route by creating a Sol child agent, subagent, separate reviewer context, or separate task.
