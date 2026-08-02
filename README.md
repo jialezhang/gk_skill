@@ -1,4 +1,4 @@
-# Sol–Terra Spec-Driven Delivery Toolkit
+# GK Engineering — Sol–Terra Spec-Driven Delivery Toolkit
 
 An installable Codex plugin and Spec Kit customization for this lifecycle:
 
@@ -34,7 +34,7 @@ From this repository root:
 
 ```bash
 codex plugin marketplace add .
-codex plugin add sol-terra-delivery@gk-skill
+codex plugin add gk-engineering@gk-skill
 ```
 
 Restart Codex after installation so the seven skills are discovered.
@@ -50,7 +50,7 @@ uv tool install specify-cli
 Then run:
 
 ```bash
-python3 plugins/sol-terra-delivery/scripts/install.py \
+python3 plugins/gk-engineering/scripts/install.py \
   --project /absolute/path/to/project \
   --init-spec-kit
 ```
@@ -121,7 +121,7 @@ Do not use that external workflow and `$goal-driven-delivery` as concurrent impl
 ## Validate the package
 
 ```bash
-python3 plugins/sol-terra-delivery/scripts/validate_toolkit.py
+python3 plugins/gk-engineering/scripts/validate_toolkit.py
 ```
 
 The validator checks the plugin, all skills, Spec Kit manifests, templates, and cross-file IDs. A full smoke test additionally installs the Spec Kit components into a disposable initialized project.

@@ -68,7 +68,7 @@ def main() -> int:
     require(plugin_json.exists(), "missing plugin.json", errors)
     if plugin_json.exists():
         data = json.loads(plugin_json.read_text(encoding="utf-8"))
-        require(data.get("name") == "sol-terra-delivery", "plugin id mismatch", errors)
+        require(data.get("name") == "gk-engineering", "plugin id mismatch", errors)
         require(data.get("skills") == "./skills/", "plugin skills path mismatch", errors)
 
     skill_root = plugin_root / "skills"

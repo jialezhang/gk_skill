@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 
-PLUGIN_ID = "sol-terra-delivery"
+PLUGIN_ID = "gk-engineering"
 MARKETPLACE_ID = "gk-skill"
 PRESET_ID = "sol-terra-artifacts"
 EXTENSION_ID = "delivery-governance"
@@ -153,7 +153,7 @@ def main() -> int:
         print(f"install failed: {exc}", file=sys.stderr)
         return 1
 
-    print("Sol Terra Delivery toolkit is installed.")
+    print("GK Engineering toolkit is installed.")
     if not args.skip_codex_plugin:
         print("Restart Codex to load the plugin skills.")
     return 0

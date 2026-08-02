@@ -5,10 +5,10 @@
   },
   "plugins": [
     {
-      "name": "sol-terra-delivery",
+      "name": "gk-engineering",
       "source": {
         "source": "local",
-        "path": "./plugins/sol-terra-delivery"
+        "path": "./plugins/gk-engineering"
       },
       "policy": {
         "installation": "AVAILABLE",
