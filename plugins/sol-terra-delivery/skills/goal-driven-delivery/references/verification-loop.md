@@ -6,7 +6,9 @@
 - Independent verifier executes planned checks and challenges target identity.
 - Luna independently executes deterministic low-complexity checks and reconciles their evidence.
 - Terra independently executes browser acceptance, 阶段真实用户旅程, runtime/Provider-boundary judgment, and final exact-target acceptance.
-- Sol decides only escalated product, plan, architecture, or high-risk security contradictions.
+- Sol is preferred for escalated product, plan, architecture, or high-risk security contradictions; when unavailable, the current model continues under an evidenced `sol_route_fallback`.
+
+All browser execution in this loop is exclusive to Ego Lite `ego-browser` and must follow [browser-acceptance-contract.md](browser-acceptance-contract.md). Other browser automation or manual observation is diagnostic only.
 
 ## Verification sequence
 
@@ -15,7 +17,7 @@
 3. reuse valid same-candidate evidence, then run missing `fast` checks;
 4. run affected `change` boundaries and 阶段真实用户旅程;
 5. run `full` regression/build only after candidate freeze or a documented risk trigger;
-6. execute exact-target journey where the gate requires it;
+6. execute every browser or exact-target UI journey through Ego Lite `ego-browser` where the gate requires it;
 7. inspect authoritative persisted facts and user-visible results;
 8. attach raw outputs/screenshots/logs, record runtime provenance, classify produced evidence, and record unexecuted checks;
 9. compare diff with scope and forbidden constraints.

@@ -14,6 +14,7 @@ Read these references completely before starting:
 - [references/verification-loop.md](references/verification-loop.md)
 - [references/checkpoint-contract.md](references/checkpoint-contract.md)
 - [references/candidate-evidence-contract.md](references/candidate-evidence-contract.md)
+- [references/browser-acceptance-contract.md](references/browser-acceptance-contract.md)
 - [../product-to-delivery/references/native-agent-routing.md](../product-to-delivery/references/native-agent-routing.md)
 
 ## Preconditions
@@ -25,7 +26,7 @@ Require all of:
 - `tasks_status: PLAN_APPROVED` and matching plan version;
 - a defined exact target, rollback path, gates, and completion criteria;
 - a validated scope assessment and selected Goal boundary;
-- a passing Sol/Terra/Luna routing Canary;
+- a passing Sol/Terra/Luna routing Canary, where an evidenced `sol_route_fallback` on the current model satisfies only unavailable Sol slots;
 - explicit user authorization to execute and use subagents.
 
 Return `DELIVERY_NOT_READY` if any condition is missing. Do not repair approval metadata implicitly.
@@ -57,11 +58,11 @@ The program owns one cumulative budget across all Goals: normal target 8, soft l
 5. Give each executor only the current execution packet: global MUST/FORBIDDEN IDs, task, consumed contract revisions, relevant prior evidence, write scope, verification, and escalation rules.
 6. Require the executor to inspect actual code before editing, implement the smallest complete task outcome, run focused checks, inspect its diff, and return [assets/handoff-template.yaml](assets/handoff-template.yaml).
 7. Reject handoffs that omit artifact revisions, actual verification output, deviations, or remaining risk.
-8. Assign routine focused checks, typecheck, build, diff checks, baseline comparison, and checklist reconciliation to an independent `gpt-5.6-luna` context. Assign browser acceptance, 阶段真实用户旅程, runtime lifecycle/Provider-boundary acceptance, and final exact-target acceptance to an independent `gpt-5.6-terra` context. Sol is used only for an allowed product, plan, architecture, or high-risk security escalation.
+8. Assign routine focused checks, typecheck, build, diff checks, baseline comparison, and checklist reconciliation to an independent `gpt-5.6-luna` context. Assign browser acceptance, 阶段真实用户旅程, runtime lifecycle/Provider-boundary acceptance, and final exact-target acceptance to an independent `gpt-5.6-terra` context. Every browser operation in those stages must use Ego Lite `ego-browser` exclusively and satisfy the browser acceptance contract. Sol is preferred only for an allowed product, plan, architecture, or high-risk security escalation; when unavailable, the current model handles that escalation under `sol_route_fallback` without blocking the Goal.
 9. Route results:
    - local failure → same executor or debugger;
    - cross-module integration failure → integration executor;
-   - plan contradiction → pause affected tasks and invoke `$review-delivery-gate` with a Sol escalation packet;
+   - plan contradiction → pause affected tasks and invoke `$review-delivery-gate` with a Sol escalation packet; if Sol is unavailable, keep the current model and attach `sol_route_fallback` evidence;
    - product conflict → stop affected delivery and request user decision.
 10. At each gate invoke `$review-delivery-gate` with exact evidence. Never let task completion implicitly pass a gate. A runtime target must have accepted provenance for the same candidate: preflight/launch, observed process or executor, build identity, target probe, and cleanup when applicable.
 11. When an independently runnable 阶段真实用户旅程 or planned stage is complete, run the checkpoint contract: risk-appropriate verification, diff/protected-data checks, commit only owned files, push the Goal branch, then issue a progress report with the commit SHA and four fixed denominators. A checkpoint is not delivered if commit or push failed.

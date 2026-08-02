@@ -5,7 +5,7 @@ description: Use after product intent, scope, non-goals, and acceptance intent a
 
 # Create Product PRD
 
-The current main agent is the sole PRD author and reviewer and must run this skill on `gpt-5.6-sol` with `high` reasoning. Reserve `xhigh` for a documented product contradiction or unusually high-risk decision; document the reason in `model-routing.jsonl`. Do not spawn, create, or delegate to a child agent, subagent, separate reviewer context, or separate task for PRD drafting, review, revision, or validation. If the main-agent Sol route cannot be verified, return `MAIN_AGENT_SOL_REQUIRED`.
+The current main agent is the sole PRD author and reviewer. Prefer `gpt-5.6-sol` with `high` reasoning; reserve `xhigh` for a documented product contradiction or unusually high-risk decision. When Sol is not listed, selection is rejected, or the observed route mismatches, continue with the current model and append `sol_route_fallback` plus live unavailability evidence to `model-routing.jsonl`. Do not return `MAIN_AGENT_SOL_REQUIRED` or block the Goal. Do not spawn, create, or delegate to a child agent, subagent, separate reviewer context, or separate task for PRD drafting, review, revision, or validation.
 
 Read these references completely before writing:
 

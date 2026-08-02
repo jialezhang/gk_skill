@@ -9,7 +9,9 @@ Keep review read-only except for approved plan/state/decision artifacts. Choose 
 
 - deterministic focused tests, typecheck, build, diff, baseline comparison, checklist review, and evidence reconciliation: `gpt-5.6-luna`;
 - implementation-quality review, browser acceptance, 阶段真实用户旅程, runtime/provider-boundary acceptance, and final exact-target acceptance: `gpt-5.6-terra`;
-- product decisions, plan/architecture contradictions, or high-risk security judgment: `gpt-5.6-sol`.
+- product decisions, plan/architecture contradictions, or high-risk security judgment: prefer `gpt-5.6-sol`; if unavailable, the current model continues under `sol_route_fallback`.
+
+For every browser-related acceptance path, Terra must operate the page exclusively through Ego Lite `ego-browser` and follow [../goal-driven-delivery/references/browser-acceptance-contract.md](../goal-driven-delivery/references/browser-acceptance-contract.md). Playwright, Chrome control, generic computer-use, built-in browser tools, and manual browser claims are not acceptance evidence.
 
 Run the no-write model handshake before review work. Record and validate actual per-turn model metadata. `MODEL_ROUTE_MISMATCH` or a missing handshake invalidates the review and quarantines its output.
 
@@ -42,7 +44,7 @@ Read these references completely:
 ### Decide
 
 1. For local rework, return precise task/evidence requirements to Terra without redesigning the plan.
-2. For a plan conflict, return the evidence packet to the current main agent. The main agent enters the Sol planning stage, revises only the affected technical baseline/tasks, increments the plan version, records decisive evidence, and identifies invalidated attempts/gates.
+2. For a plan conflict, return the evidence packet to the current main agent. The main agent enters the planning stage, preferring Sol and otherwise continuing on the current model under `sol_route_fallback`; it revises only the affected technical baseline/tasks, increments the plan version, records decisive evidence, and identifies invalidated attempts/gates.
 3. For a product conflict, present the user with the minimum decision set, product consequences, and recommended option; do not approve a downgrade silently.
 4. Return one verdict: `GATE_PASSED`, `REWORK_REQUIRED`, `PLAN_REVISED`, `PRODUCT_DECISION_REQUIRED`, `VERIFICATION_BLOCKED`, or `TARGET_VERIFIED`.
 5. Persist the verdict and evidence references in delivery state/decision log before Terra resumes.

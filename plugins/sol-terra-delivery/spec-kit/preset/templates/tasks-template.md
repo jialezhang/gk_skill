@@ -22,6 +22,7 @@ plan_version: 0.1.0
 - **Write scope**:
 - **Parallel safety**:
 - **Worktree/branch and port/browser context**:
+- **Browser acceptance runner (when applicable)**: Ego Lite `ego-browser` exclusively; task-space, exact URL, evidence paths, and `completeTaskSpace` cleanup
 - **Outcome**:
 - **Acceptance**:
   - [ ]
@@ -36,7 +37,7 @@ plan_version: 0.1.0
   - 阶段真实用户旅程/ exact-target handoff:
 - **Candidate touchpoints (non-binding)**:
 - **Rollback/disable**:
-- **Escalate to Sol when**:
+- **Escalate to Sol when**: prefer Sol; if unavailable, current model continues under `sol_route_fallback`
 - **Evidence destination**:
 - **Checkpoint commit/push/progress report**:
 - **Documentation/Legacy/migration obligations (when applicable)**:

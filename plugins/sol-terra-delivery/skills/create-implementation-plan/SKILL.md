@@ -5,7 +5,7 @@ description: Use when an approved PRD and validated scope decision need an evide
 
 # Create Implementation Plan
 
-The current main agent is the sole implementation-plan author and reviewer and must run this skill on `gpt-5.6-sol`. Do not spawn, create, or delegate to a child agent, subagent, separate reviewer context, or separate task for planning, review, revision, or validation. If the main-agent Sol route cannot be verified, return `MAIN_AGENT_SOL_REQUIRED`. Do not implement product code in this stage.
+The current main agent is the sole implementation-plan author and reviewer. Prefer `gpt-5.6-sol`; if it is not listed, selection is rejected, or the observed route mismatches, continue with the current model and record `sol_route_fallback` with live evidence. Do not return `MAIN_AGENT_SOL_REQUIRED` or block the Goal. Do not spawn, create, or delegate to a child agent, subagent, separate reviewer context, or separate task for planning, review, revision, or validation. Do not implement product code in this stage.
 
 Read all references completely:
 
@@ -36,7 +36,7 @@ Require `prd_status: APPROVED` and a validated `scope-assessment.yaml` whose spl
 
 1. Build responsibility-replacement, field-level data/identity/safety flow, compatibility, migration, rollback, and Legacy maps.
 2. For asynchronous or event-driven journeys, define the runtime lifecycle and state-convergence contract: distinct lifecycle identities, terminal-state ownership, correlation keys, subscription lifetime, authoritative snapshot, reconnect/event-loss recovery, ordering/idempotency, convergence bound, and duplicate-side-effect prevention.
-3. Define the earliest 阶段真实用户旅程 and falsifiers that stop unjustified expansion. The journey must include interruption and recovery when lifecycle continuity is part of the risk.
+3. Define the earliest 阶段真实用户旅程 and falsifiers that stop unjustified expansion. The journey must include interruption and recovery when lifecycle continuity is part of the risk. Every browser journey must specify Ego Lite `ego-browser` as the exclusive interaction and evidence runner.
 4. Record alternatives and why they were rejected.
 5. Mark every decision `MUST`, `BASELINE`, `VERIFY_FIRST`, `RECOMMENDED`, `DEFERRED`, or `FORBIDDEN`.
 6. Create the complete project baseline using [assets/implementation-plan-template.md](assets/implementation-plan-template.md).
@@ -62,7 +62,7 @@ Require `prd_status: APPROVED` and a validated `scope-assessment.yaml` whose spl
 
 1. Create `verification.md` from [assets/verification-template.md](assets/verification-template.md).
 2. Separate acceptance claims (`AC-*`) from execution scenarios (`SC-*`). Let one scenario prove multiple claims when it uses the same path.
-3. For every applicable long-running journey, require exact-target cases for normal completion, reconnect during work, dropped/delayed/duplicate terminal events, failure/cancellation, retry supersession, cross-surface agreement, and bounded convergence from the authoritative snapshot.
+3. For every applicable long-running journey, require exact-target cases for normal completion, reconnect during work, dropped/delayed/duplicate terminal events, failure/cancellation, retry supersession, cross-surface agreement, and bounded convergence from the authoritative snapshot. Browser cases must follow the Ego Lite `ego-browser` contract.
 4. Define `fast`, `change`, and `full` suites, with full regression/build reserved for a frozen candidate or a documented risk trigger.
 5. Define Provider modes and cost limits. Do not expand an unjustified Cartesian matrix; require explicit interaction-risk evidence and execution budget when one is necessary.
 6. Define candidate identity, evidence reuse/invalidation rules, gate prerequisites, forbidden substitutions, stop action, and recovery owner.

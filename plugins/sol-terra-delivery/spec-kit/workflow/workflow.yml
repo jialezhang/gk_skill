@@ -21,20 +21,17 @@ inputs:
   integration:
     type: string
     default: "codex"
-  planner_model:
-    type: string
-    default: "gpt-5.6-sol"
-
 steps:
   - id: create-prd
     type: prompt
     integration: "{{ inputs.integration }}"
-    model: "{{ inputs.planner_model }}"
     prompt: >-
       Use $create-product-prd. Treat this as the completed discovery input:
       {{ inputs.feature }}. Resolve the active Spec Kit feature directory, run
       the full evidence, independent review, and validation process, write
-      spec.md, and stop at REVIEW_REQUIRED.
+      spec.md, and stop at REVIEW_REQUIRED. Prefer Sol when the live surface
+      exposes it; otherwise continue on the current model under
+      sol_route_fallback without blocking the Goal.
 
   - id: review-prd
     type: gate
@@ -45,14 +42,12 @@ steps:
   - id: approve-prd
     command: "speckit.delivery-governance.approve-prd"
     integration: "{{ inputs.integration }}"
-    model: "{{ inputs.planner_model }}"
     input:
       args: "approval_source=workflow_prd_gate"
 
   - id: create-plan
     type: prompt
     integration: "{{ inputs.integration }}"
-    model: "{{ inputs.planner_model }}"
     prompt: >-
       First use $assess-goal-scope for the approved spec.md, inspect the actual
       repository, write scope-assessment.yaml, and resolve Goal packaging using
@@ -62,6 +57,8 @@ steps:
       readiness, architecture baseline, complete task DAG, verification design,
       model-routed independent review, and deterministic validation process. Write
       plan.md, tasks.md, and verification.md, then stop at PLAN_REVIEW_REQUIRED.
+      Prefer Sol when available; otherwise use the current model and record
+      sol_route_fallback instead of blocking the Goal.
 
   - id: review-plan
     type: gate
@@ -72,6 +69,5 @@ steps:
   - id: approve-plan
     command: "speckit.delivery-governance.approve-plan"
     integration: "{{ inputs.integration }}"
-    model: "{{ inputs.planner_model }}"
     input:
       args: "approval_source=workflow_plan_gate"

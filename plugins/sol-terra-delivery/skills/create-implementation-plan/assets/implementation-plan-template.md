@@ -39,6 +39,8 @@ current_milestone: M1
 - Terra execution stages:
 - Luna deterministic verification stages:
 - Terra browser/journey/final acceptance stages:
+- Sol fallback: current model, failure evidence, and `sol_route_fallback` record:
+- Browser acceptance runner: Ego Lite `ego-browser` exclusively
 - Agent target/soft/hard limit: 8 / 12 / 20
 - Maximum parallel Goal sessions: 3
 - Model-routing Canary evidence:
@@ -108,6 +110,10 @@ current_milestone: M1
 - Fault cases that must be proven on the exact target:
 
 ## 阶段真实用户旅程
+
+- Ego Lite task-space/URL:
+- `ego-browser` actions and observation evidence:
+- Task-space cleanup with `completeTaskSpace(..., { keep: false })`:
 
 - Stage and journey:
 - Exact target:

@@ -38,6 +38,18 @@ SOL_TASKS = {
     "security_high_risk",
     "product_decision",
 }
+SOL_FALLBACK_TASKS = SOL_TASKS | {"routing_canary", "routing_transition"}
+SOL_FALLBACK_REASONS = {
+    "model_not_listed",
+    "route_unavailable",
+    "selection_rejected",
+    "runtime_model_mismatch",
+}
+SOL_FALLBACK_EVIDENCE_SOURCES = {
+    "live_model_capabilities",
+    "model_selection_error",
+    "runtime_turn_context",
+}
 TERRA_TASKS = {
     "delivery_control",
     "implementation",
@@ -186,7 +198,7 @@ def main() -> int:
     errors: list[str] = []
     seen_turns: set[str] = set()
     canary_phases: set[tuple[str, str]] = set()
-    transitions: dict[int, tuple[str, str]] = {}
+    transitions: dict[int, tuple[str, str, bool]] = {}
     valid_handshakes: dict[str, tuple[str, str]] = {}
     valid_fallback_turns: set[str] = set()
     pending_execution_records: list[tuple[int, dict[str, object]]] = []
@@ -220,6 +232,18 @@ def main() -> int:
         fallback_attempted = record.get("fallback_attempted")
         fallback_from_model = record.get("fallback_from_model")
         fallback_attempts = record.get("fallback_attempts")
+        fallback_failure_reason = record.get("fallback_failure_reason")
+        fallback_evidence_source = record.get("fallback_evidence_source")
+        fallback_evidence = record.get("fallback_evidence")
+        sol_fallback_candidate = (
+            task_class in SOL_TASKS and requested != "gpt-5.6-sol"
+        ) or (
+            task_class in {"routing_canary", "routing_transition"}
+            and (
+                reason == "sol_route_fallback"
+                or fallback_from_model == "gpt-5.6-sol"
+            )
+        )
 
         if not isinstance(thread_id, str) or not thread_id:
             errors.append(f"line {line_number}: missing thread_id")
@@ -231,9 +255,11 @@ def main() -> int:
         else:
             seen_turns.add(turn_id)
 
-        if requested not in MODELS or observed not in MODELS:
+        if (
+            requested not in MODELS or observed not in MODELS
+        ) and not sol_fallback_candidate:
             errors.append(f"line {line_number}: unsupported requested/observed model")
-        if request_explicit is not True:
+        if request_explicit is not True and not sol_fallback_candidate:
             errors.append(f"line {line_number}: MODEL_REQUEST_NOT_EXPLICIT")
         if observed_source != "rollout.turn_context.payload.model":
             errors.append(f"line {line_number}: INVALID_OBSERVED_SOURCE: {observed_source!r}")
@@ -250,13 +276,65 @@ def main() -> int:
             errors.append(f"line {line_number}: UNKNOWN_TASK_CLASS: {task_class!r}")
         if requested == "gpt-5.6-sol" and reason not in SOL_REASONS:
             errors.append(f"line {line_number}: SOL_REASON_NOT_ALLOWED: {reason!r}")
-        if task_class in SOL_TASKS and requested != "gpt-5.6-sol":
+        sol_fallback_valid = False
+        if sol_fallback_candidate:
+            sol_fallback_errors: list[str] = []
+            if task_class not in SOL_FALLBACK_TASKS:
+                sol_fallback_errors.append("task class does not allow Sol fallback")
+            if reason != "sol_route_fallback":
+                sol_fallback_errors.append("allowed_reason must be sol_route_fallback")
+            if routing_surface != "main_agent":
+                sol_fallback_errors.append("routing_surface must be main_agent")
+            if model_selection_scope != "current_context":
+                sol_fallback_errors.append("model_selection_scope must be current_context")
+            expected_write = task_class in SOL_TASKS
+            if write_allowed is not expected_write:
+                sol_fallback_errors.append(f"write_allowed must be {expected_write!r}")
+            if fallback_attempted is not True:
+                sol_fallback_errors.append("fallback_attempted must be true")
+            if fallback_from_model != "gpt-5.6-sol":
+                sol_fallback_errors.append("fallback_from_model must be gpt-5.6-sol")
+            if fallback_failure_reason not in SOL_FALLBACK_REASONS:
+                sol_fallback_errors.append(
+                    f"invalid fallback_failure_reason={fallback_failure_reason!r}"
+                )
+            if fallback_evidence_source not in SOL_FALLBACK_EVIDENCE_SOURCES:
+                sol_fallback_errors.append(
+                    f"invalid fallback_evidence_source={fallback_evidence_source!r}"
+                )
+            if not isinstance(fallback_evidence, str) or not fallback_evidence.strip():
+                sol_fallback_errors.append("fallback_evidence is required")
+            if request_explicit is not False:
+                sol_fallback_errors.append("request_explicit must be false for current model")
+            if (
+                not isinstance(requested, str)
+                or not requested
+                or requested == "gpt-5.6-sol"
+                or requested != observed
+            ):
+                sol_fallback_errors.append(
+                    "requested_model and observed_model must match the non-Sol current model"
+                )
+            if sol_fallback_errors:
+                errors.append(
+                    f"line {line_number}: SOL_FALLBACK_EVIDENCE_REQUIRED: "
+                    + "; ".join(sol_fallback_errors)
+                )
+            else:
+                sol_fallback_valid = True
+                if isinstance(turn_id, str) and turn_id:
+                    valid_fallback_turns.add(turn_id)
+        if (
+            task_class in SOL_TASKS
+            and requested != "gpt-5.6-sol"
+            and not sol_fallback_valid
+        ):
             errors.append(f"line {line_number}: {task_class} must request gpt-5.6-sol")
         fallback_candidate = (
             task_class in TERRA_FALLBACK_TASKS
             and requested != "gpt-5.6-terra"
         )
-        fallback_valid = False
+        terra_fallback_valid = False
         if fallback_candidate:
             fallback_errors: list[str] = []
             if reason != "terra_route_fallback":
@@ -320,7 +398,7 @@ def main() -> int:
                     + "; ".join(fallback_errors)
                 )
             else:
-                fallback_valid = True
+                terra_fallback_valid = True
                 if isinstance(turn_id, str) and turn_id:
                     valid_fallback_turns.add(turn_id)
         elif task_class in TERRA_TASKS and requested != "gpt-5.6-terra":
@@ -328,7 +406,9 @@ def main() -> int:
         if task_class in LUNA_TASKS and requested != "gpt-5.6-luna":
             errors.append(f"line {line_number}: {task_class} must request gpt-5.6-luna")
         if task_class == "routing_canary" and phase in CANARY_PHASES:
-            if requested in MODELS and requested == observed and verified is True:
+            if sol_fallback_valid:
+                canary_phases.add(("gpt-5.6-sol", phase))
+            elif requested in MODELS and requested == observed and verified is True:
                 canary_phases.add((requested, phase))
         if task_class == "routing_transition":
             sequence_index = record.get("sequence_index")
@@ -337,7 +417,11 @@ def main() -> int:
             elif sequence_index in transitions:
                 errors.append(f"line {line_number}: duplicate transition sequence_index: {sequence_index}")
             elif isinstance(thread_id, str) and isinstance(requested, str):
-                transitions[sequence_index] = (thread_id, requested)
+                transitions[sequence_index] = (
+                    thread_id,
+                    requested,
+                    sol_fallback_valid,
+                )
         if task_class == "routing_handshake":
             if write_allowed is not False:
                 errors.append(f"line {line_number}: HANDSHAKE_MUST_BE_READ_ONLY")
@@ -501,7 +585,7 @@ def main() -> int:
                                 f"line {line_number}: NATIVE_SPAWN_AGENT_TYPE_FORBIDDEN "
                                 f"runtime={runtime_spawn.get('agent_type')!r}"
                             )
-            if fallback_valid:
+            if terra_fallback_valid:
                 assert isinstance(fallback_attempts, list)
                 for attempt in fallback_attempts:
                     assert isinstance(attempt, dict)
@@ -569,10 +653,14 @@ def main() -> int:
     if args.require_transition_canary:
         actual_indexes = sorted(transitions)
         transition_models = [transitions[index][1] for index in actual_indexes]
-        actual_threads = {thread for thread, _model in transitions.values()}
+        normalized_transition_models = [
+            "gpt-5.6-sol" if index == 3 and transitions[index][2] else transitions[index][1]
+            for index in actual_indexes
+        ]
+        actual_threads = {thread for thread, _model, _fallback in transitions.values()}
         if (
             actual_indexes != [1, 2, 3, 4]
-            or transition_models != TRANSITION_MODELS
+            or normalized_transition_models != TRANSITION_MODELS
             or len(actual_threads) != 1
         ):
             errors.append(

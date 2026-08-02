@@ -14,7 +14,7 @@ request with no approved PRD
    → user chooses split or single Goal (240s silence defaults to single)
    → $create-implementation-plan
    → user approves plan
-   → verified Sol/Terra/Luna routing Canary
+   → verified Sol/Terra/Luna routing Canary (audited current-model fallback when Sol is unavailable)
    → one or more $goal-driven-delivery sessions/worktrees
    → checkpoint commit + push + progress report
    → $integrate-goals when delivery was split
@@ -82,9 +82,10 @@ $goal-driven-delivery
 
 - Technical changes may bypass PRD creation only after the user explicitly chooses `PRD_NOT_REQUIRED`; if product or governed risk boundaries emerge, the controller reclassifies before continuing.
 - Scope is inspected before planning. P80 above 8 hours recommends splitting; above 10 hours strongly recommends it. Users may still choose one Goal.
-- Sol handles PRD, scope, planning, and genuine product/plan/architecture/high-risk security conflicts.
+- Sol is preferred for PRD, scope, planning, and genuine product/plan/architecture/high-risk security conflicts. If Sol is unavailable, the current main model continues under audited `sol_route_fallback`; Goal work does not block on Sol availability.
 - Terra handles delivery control, implementation, debugging, rework, and integration.
-- Luna handles routine checks, build/checklist review, browser E2E, and uncomplicated final acceptance.
+- Luna handles routine checks and build/checklist review.
+- Terra judges browser E2E, stage journeys, runtime boundaries, and final acceptance. Every browser interaction and browser evidence is produced exclusively through Ego Lite `ego-browser`.
 - Model selection is explicit on every turn. Runtime metadata—not an Agent name or self-report—must prove the observed model. A mismatch fails closed.
 - The normal Agent target is 8, soft limit 12, cumulative hard limit 20, maximum nesting depth 1, and at most 3 parallel Goal sessions.
 - Each runnable stage ends with focused checks, an owned-file commit, verified push, and a fixed-denominator progress report.
@@ -110,9 +111,10 @@ The optional Spec Kit workflow prepares PRD, scope, plan, tasks, and verificatio
 
 ```bash
 specify workflow run sol-terra-pre-delivery \
-  --input feature="Describe the feature" \
-  --input planner_model="gpt-5.6-sol"
+  --input feature="Describe the feature"
 ```
+
+The workflow uses the integration's current model. The stage skills prefer Sol when it is live and otherwise record `sol_route_fallback`, so an unavailable Sol route cannot prevent Goal delivery.
 
 Do not use that external workflow and `$goal-driven-delivery` as concurrent implementation controllers. Delivery is owned by the Codex skill.
 

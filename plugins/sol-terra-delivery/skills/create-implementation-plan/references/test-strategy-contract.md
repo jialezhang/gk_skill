@@ -27,6 +27,8 @@
 4. 证据在哪里；
 5. 下一步可以做什么。
 
+所有浏览器相关旅程必须由 Ego Lite `ego-browser` 独占执行，并在计划中记录 task-space、精确 URL、交互步骤、截图/语义快照、结果读回和关闭动作。Playwright、Chrome 控制、通用 computer-use、内置浏览器工具或人工口述不能成为浏览器验收证据。详细证据合同见 `goal-driven-delivery/references/browser-acceptance-contract.md`。
+
 需要付费或慢速 Provider 时，优先在早期阶段使用 `mock` 或 `sandbox` 证明交互和状态合同；只在候选版本的关键 Provider 边界使用最少量 `real_expensive` 调用。视频等高成本生成默认不进入常规回归。
 
 ## Provider 模式和成本门禁

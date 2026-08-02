@@ -5,9 +5,11 @@ description: Use after an approved PRD and before implementation planning when d
 
 # Assess Goal Scope
 
-The current main agent must run this skill on `gpt-5.6-sol`. Verify the current runtime turn before
-assessment work. An Agent name, role, or prompt is not model evidence. If the main-agent Sol route
-cannot be verified, return `MAIN_AGENT_SOL_REQUIRED`.
+The current main agent prefers `gpt-5.6-sol` for this skill. Verify the current runtime turn before
+assessment work. An Agent name, role, or prompt is not model evidence. If Sol is not listed,
+selection is rejected, or the observed route mismatches, continue with the current model and append
+an evidenced `sol_route_fallback` record. Never return `MAIN_AGENT_SOL_REQUIRED` or block Goal
+packaging solely because Sol is unavailable.
 
 Estimate delivery size from repository evidence before committing to one Goal. P80 is the wall-clock duration that the assessment expects not to exceed in 80% of comparable executions; it is a calibrated range, not a promise.
 

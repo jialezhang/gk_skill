@@ -6,7 +6,7 @@ Terra owns reversible differences that preserve product, public contracts, safet
 
 ## Plan-level conflict
 
-Pause affected tasks and escalate to Sol when evidence requires:
+Pause affected tasks and escalate to the current main planning agent when evidence requires the following. Prefer Sol; if unavailable, continue on the current model under `sol_route_fallback`:
 
 - changing a BASELINE/MUST technical decision;
 - adding a state owner, runtime, persistence layer, domain object, or public contract;
@@ -20,7 +20,7 @@ The controller assembles one evidence packet. Child agents do not ask the user o
 
 ## Product-level conflict
 
-Sol consolidates options and asks the user only when every viable plan changes user behavior, P0/P1 scope, product invariants, non-goals, safety, authoritative data, completion, release scope, or significant cost.
+The current main planning agent consolidates options, preferring Sol and otherwise using `sol_route_fallback`, and asks the user only when every viable plan changes user behavior, P0/P1 scope, product invariants, non-goals, safety, authoritative data, completion, release scope, or significant cost.
 
 ## Resume after revision
 

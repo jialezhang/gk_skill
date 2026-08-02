@@ -40,6 +40,7 @@ python3 scripts/validate_candidate_evidence.py <candidate-evidence.json>
 - 原始日志、截图或报告仍可读取；
 - Provider 模式满足该声明；
 - 运行模型符合角色合同。
+- 浏览器证据明确记录 Ego Lite `ego-browser` task-space、精确 URL、交互和关闭动作；其他浏览器入口只能作为诊断证据。
 
 模型或 reviewer 变化本身不使证据失效。Reviewer 先对账索引，再只运行缺失或已失效的场景。
 

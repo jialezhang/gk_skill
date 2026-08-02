@@ -323,6 +323,43 @@ class DeliveryGovernanceTextTests(unittest.TestCase):
         self.assertIn("independent Terra", text)
         self.assertIn("gpt-5.6-luna", text)
 
+    def test_browser_acceptance_is_exclusive_to_ego_lite(self) -> None:
+        contract = (
+            SKILL_ROOT
+            / "goal-driven-delivery"
+            / "references"
+            / "browser-acceptance-contract.md"
+        ).read_text(encoding="utf-8")
+        for required in (
+            "Ego Lite",
+            "ego-browser",
+            "completeTaskSpace",
+            "Playwright",
+            "Chrome",
+            "exclusive",
+        ):
+            self.assertIn(required, contract)
+        for relative in (
+            "goal-driven-delivery/SKILL.md",
+            "goal-driven-delivery/references/verification-loop.md",
+            "review-delivery-gate/SKILL.md",
+            "create-implementation-plan/references/test-strategy-contract.md",
+        ):
+            text = (SKILL_ROOT / relative).read_text(encoding="utf-8")
+            self.assertIn("ego-browser", text, relative)
+
+    def test_sol_unavailability_falls_back_without_blocking_goal_delivery(self) -> None:
+        for relative in (
+            "product-to-delivery/SKILL.md",
+            "create-product-prd/SKILL.md",
+            "assess-goal-scope/SKILL.md",
+            "create-implementation-plan/SKILL.md",
+            "goal-driven-delivery/SKILL.md",
+        ):
+            text = (SKILL_ROOT / relative).read_text(encoding="utf-8")
+            self.assertIn("sol_route_fallback", text, relative)
+            self.assertIn("current model", text, relative)
+
     def test_plan_consumes_scope_and_defines_goal_isolation(self) -> None:
         text = (SKILL_ROOT / "create-implementation-plan" / "SKILL.md").read_text(encoding="utf-8")
         for required in (

@@ -26,7 +26,7 @@
 - Terra can execute without recreating architecture decisions.
 - Every Goal has bounded P80, worktree/session/branch ownership, checkpoints, and an integration path.
 - The current main agent performs routine coverage review and records the result in the planning handoff.
-- Plan-level contradictions return to the current main agent's Sol planning pass without spawning a reviewer agent.
+- Plan-level contradictions return to the current main agent's planning pass without spawning a reviewer agent. Prefer Sol; if unavailable, continue on the current model under `sol_route_fallback`.
 
 ### Verification integrity
 

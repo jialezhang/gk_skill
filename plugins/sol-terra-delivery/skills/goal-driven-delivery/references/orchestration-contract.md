@@ -2,7 +2,7 @@
 
 ## Single runtime owner
 
-The program controller owns cross-Goal dependencies, cumulative Agent budget, and integration readiness. Each Terra Goal controller owns only its Goal's live state. Spec Kit artifacts are durable baselines, not a second scheduler. Only the current main agent may revise PRDs or plans in its Sol stage; reviewers and Terra controllers return evidence to it and do not dispatch implementation while a revision is active.
+The program controller owns cross-Goal dependencies, cumulative Agent budget, and integration readiness. Each Terra Goal controller owns only its Goal's live state. Spec Kit artifacts are durable baselines, not a second scheduler. Only the current main agent may revise PRDs or plans, preferring Sol and otherwise using the current model under `sol_route_fallback`; reviewers and Terra controllers return evidence to it and do not dispatch implementation while a revision is active.
 
 ## Role routing
 
@@ -14,11 +14,13 @@ The program controller owns cross-Goal dependencies, cumulative Agent budget, an
 | Data/migration implementation | `data_executor` | `gpt-5.6-terra` / high |
 | Focused debugging | `debugger` | `gpt-5.6-terra` / high |
 | Deterministic test/build/checklist execution | `luna_verifier` | `gpt-5.6-luna` / medium or high |
-| Browser, lifecycle, Provider, and stage journey acceptance | `terra_acceptance` | `gpt-5.6-terra` / high |
+| Browser, lifecycle, Provider, and stage journey acceptance | `terra_acceptance` using Ego Lite `ego-browser` for every browser operation | `gpt-5.6-terra` / high |
 | Final exact-target acceptance | `terra_final_acceptance` | `gpt-5.6-terra` / high |
-| Plan/architecture/security escalation | `sol_planner` / `sol_reviewer` | `gpt-5.6-sol` / high; xhigh only when justified |
+| Plan/architecture/security escalation | current main agent | prefer `gpt-5.6-sol`; otherwise current model under `sol_route_fallback` |
 
 Model identity is a runtime contract. Pass the explicit model on every turn and verify observed metadata; a role name is not evidence.
+
+All browser acceptance uses the exclusive Ego Lite contract in [browser-acceptance-contract.md](browser-acceptance-contract.md); the model decides the verdict, while `ego-browser` owns the browser interaction and evidence capture.
 
 Every new model context starts with a no-write routing handshake. Do not send repository-write
 authority or the execution packet until runtime metadata proves the requested model. A mismatch
@@ -56,7 +58,7 @@ recommended_review:
 
 ## Revision invalidation
 
-When the current main agent changes a consumed contract in its Sol planning stage, mark affected pending and completed-but-unverified attempts `stale`, record the new plan revision, and rerun only the evidence invalidated by the change. Do not erase prior evidence.
+When the current main agent changes a consumed contract in its planning stage, mark affected pending and completed-but-unverified attempts `stale`, record the new plan revision, and rerun only the evidence invalidated by the change. Sol fallback changes only the model route, not the invalidation rules. Do not erase prior evidence.
 
 ## Retry policy
 

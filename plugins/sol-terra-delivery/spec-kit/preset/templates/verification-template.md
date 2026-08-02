@@ -34,6 +34,8 @@ plan_version: 0.1.0
 
 - Preconditions:
 - Exact target:
+- Browser runner when applicable: Ego Lite `ego-browser` exclusively
+- Ego Lite task-space, URL, screenshots/snapshots, and `completeTaskSpace` cleanup evidence:
 - User/owner:
 - Provider/data:
 - Actions:

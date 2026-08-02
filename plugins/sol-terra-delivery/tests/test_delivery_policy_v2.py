@@ -60,6 +60,31 @@ def terra_fallback_attempts(
     ]
 
 
+def sol_fallback_record(
+    turn_id: str,
+    task_class: str,
+    current_model: str = "gpt-5.7-current",
+    **extra: object,
+) -> dict[str, object]:
+    record = routing_record(
+        turn_id,
+        task_class,
+        current_model,
+        request_explicit=False,
+        allowed_reason="sol_route_fallback",
+        routing_surface="main_agent",
+        model_selection_scope="current_context",
+        write_allowed=task_class not in {"routing_canary", "routing_transition"},
+        fallback_attempted=True,
+        fallback_from_model="gpt-5.6-sol",
+        fallback_failure_reason="model_not_listed",
+        fallback_evidence_source="live_model_capabilities",
+        fallback_evidence="current routing surface does not list gpt-5.6-sol",
+    )
+    record.update(extra)
+    return record
+
+
 class ModelHandshakeTests(unittest.TestCase):
     def validate(self, records: list[dict[str, object]], *args: str) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory() as tmp:
@@ -224,6 +249,106 @@ class ModelHandshakeTests(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("MODEL_HANDSHAKE_REQUIRED", result.stderr)
+
+    def test_sol_task_continues_on_current_model_when_sol_is_unavailable(self) -> None:
+        fallback = sol_fallback_record("plan-fallback-1", "implementation_plan")
+        result = self.validate([fallback], "--require-handshake")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_sol_fallback_runtime_evidence_accepts_the_actual_current_model(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sessions = root / "sessions"
+            sessions.mkdir()
+            fallback = sol_fallback_record("plan-fallback-1", "implementation_plan")
+            routing = root / "routing.jsonl"
+            routing.write_text(json.dumps(fallback) + "\n", encoding="utf-8")
+            (sessions / "rollout-thread-1.jsonl").write_text(
+                json.dumps(
+                    {
+                        "type": "turn_context",
+                        "payload": {
+                            "turn_id": "plan-fallback-1",
+                            "model": "gpt-5.7-current",
+                        },
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            result = run_script(
+                "scripts/validate_model_routing.py",
+                str(routing),
+                "--require-handshake",
+                "--require-runtime-evidence",
+                "--sessions-root",
+                str(sessions),
+                "--archived-root",
+                str(root / "archived"),
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_sol_fallback_requires_live_unavailability_evidence(self) -> None:
+        fallback = sol_fallback_record("plan-fallback-1", "implementation_plan")
+        fallback.pop("fallback_evidence")
+        result = self.validate([fallback], "--require-handshake")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("SOL_FALLBACK_EVIDENCE_REQUIRED", result.stderr)
+
+    def test_routing_canary_accepts_current_model_for_unavailable_sol(self) -> None:
+        records: list[dict[str, object]] = []
+        for short, model in (
+            ("terra", "gpt-5.6-terra"),
+            ("luna", "gpt-5.6-luna"),
+        ):
+            for phase in ("initial", "followup"):
+                records.append(
+                    routing_record(
+                        f"canary-{short}-{phase}",
+                        "routing_canary",
+                        model,
+                        thread_id=f"canary-{short}",
+                        phase=phase,
+                    )
+                )
+        for phase in ("initial", "followup"):
+            records.append(
+                sol_fallback_record(
+                    f"canary-sol-fallback-{phase}",
+                    "routing_canary",
+                    thread_id="canary-sol-fallback",
+                    phase=phase,
+                )
+            )
+        for index, model in enumerate(
+            ("gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.7-current", "gpt-5.6-terra"),
+            1,
+        ):
+            if index == 3:
+                record = sol_fallback_record(
+                    f"transition-{index}",
+                    "routing_transition",
+                    current_model=model,
+                    thread_id="transition-thread",
+                    phase="transition",
+                    sequence_index=index,
+                )
+            else:
+                record = routing_record(
+                    f"transition-{index}",
+                    "routing_transition",
+                    model,
+                    thread_id="transition-thread",
+                    phase="transition",
+                    sequence_index=index,
+                )
+            records.append(record)
+        result = self.validate(
+            records,
+            "--require-canary",
+            "--require-transition-canary",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_main_agent_continues_with_current_model_when_terra_switch_fails(self) -> None:
         fallback = routing_record(
@@ -847,6 +972,33 @@ updated_at: "2026-07-23T00:00:00Z"
 
     def test_complete_raw_evidence_gate_passes(self) -> None:
         result = self.run_complete_gate(self.complete_routing_records())
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_complete_gate_does_not_block_when_sol_is_unavailable(self) -> None:
+        records: list[dict[str, object]] = []
+        for record in self.complete_routing_records():
+            if record.get("thread_id") == "canary-sol":
+                records.append(
+                    sol_fallback_record(
+                        str(record["turn_id"]),
+                        "routing_canary",
+                        thread_id="canary-sol",
+                        phase=str(record["phase"]),
+                    )
+                )
+            elif record.get("turn_id") == "transition-3":
+                records.append(
+                    sol_fallback_record(
+                        "transition-3",
+                        "routing_transition",
+                        thread_id="transition-thread",
+                        phase="transition",
+                        sequence_index=3,
+                    )
+                )
+            else:
+                records.append(record)
+        result = self.run_complete_gate(records)
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_complete_gate_accepts_audited_main_agent_fallback(self) -> None:

@@ -8,7 +8,7 @@ Before merging, confirm each Goal's handoff identifies accepted evidence records
 
 ## Conflict ownership
 
-Terra may resolve mechanical and local implementation conflicts that preserve approved contracts. Sol is reserved for evidence that invalidates the plan, architecture, or high-risk security boundary. Product outcome changes return to the user.
+Terra may resolve mechanical and local implementation conflicts that preserve approved contracts. The current main planning agent handles evidence that invalidates the plan, architecture, or high-risk security boundary, preferring Sol and otherwise using `sol_route_fallback`. Product outcome changes return to the user.
 
 ## Verification layers
 

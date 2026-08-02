@@ -41,7 +41,7 @@ At minimum define:
 - safety/data/migration gates when applicable;
 - final exact-target acceptance gate.
 
-Gate failure blocks downstream tasks whose assumptions depend on it. Ordinary local failures go back to the executor; baseline contradictions go to Sol; product-contract conflicts go to the user.
+Gate failure blocks downstream tasks whose assumptions depend on it. Ordinary local failures go back to the executor; baseline contradictions go to the current main planning agent, preferring Sol and otherwise using `sol_route_fallback`; product-contract conflicts go to the user.
 
 ## Task done
 
