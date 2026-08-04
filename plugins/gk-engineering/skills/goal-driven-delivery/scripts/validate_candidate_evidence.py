@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate same-candidate scenario coverage and independent Terra acceptance."""
+"""Validate same-candidate coverage and independent Terra or audited fallback acceptance."""
 
 from __future__ import annotations
 
@@ -247,8 +247,14 @@ def main() -> int:
         else:
             if acceptance.get("candidate_commit") != candidate:
                 errors.append("final_acceptance candidate does not match")
-            if acceptance.get("model") != "gpt-5.6-terra":
-                errors.append("TERRA_FINAL_ACCEPTANCE_REQUIRED")
+            acceptance_model = acceptance.get("model")
+            acceptance_route = acceptance.get("model_route")
+            if acceptance_model != "gpt-5.6-terra" and acceptance_route != "terra_route_fallback":
+                errors.append("TERRA_OR_AUDITED_FALLBACK_FINAL_ACCEPTANCE_REQUIRED")
+            if acceptance_route == "terra_route_fallback" and acceptance.get(
+                "fallback_from_model"
+            ) != "gpt-5.6-terra":
+                errors.append("final acceptance fallback_from_model must be gpt-5.6-terra")
             reviewer = acceptance.get("reviewer_thread_id")
             reviewer_turn = acceptance.get("reviewer_turn_id")
             implementers = acceptance.get("implementation_thread_ids")

@@ -13,7 +13,13 @@ Require the approved artifact versions, affected task/gate IDs, repository diff,
 
 ## Model boundary
 
-Luna owns deterministic low-complexity checks against already approved criteria. Terra owns local code-quality review, browser and 阶段真实用户旅程 execution, runtime/Provider judgment, repair advice, and final acceptance. Every browser operation is exclusive to Ego Lite `ego-browser`. Sol is preferred only for product, plan, architecture, or high-risk security judgment; if unavailable, the current model continues under `sol_route_fallback`. The presence of a final gate does not by itself justify Sol.
+Luna is preferred for deterministic low-complexity checks; when unavailable, the current model owns
+them under `luna_route_fallback`. Terra is preferred for local code-quality review, browser and
+阶段真实用户旅程 execution, runtime/Provider judgment, repair advice, and final acceptance. After
+three failed raw Terra route attempts, use `terra_route_fallback`; final acceptance still requires a
+fresh independent read-only context. Every browser operation is exclusive to Ego Lite
+`ego-browser`. Sol is preferred only for product, plan, architecture, or high-risk security
+judgment; if unavailable, the current model continues under `sol_route_fallback`.
 
 ## Plan revision rules
 
@@ -33,4 +39,7 @@ Check the PRD first, then the plan. Require:
 - model-routing records valid for every review turn;
 - completed checkpoints committed, pushed, and reported.
 
-Final acceptance uses an independent Terra thread and valid same-candidate evidence. Return `TARGET_VERIFIED` only when every condition holds; escalate to the current main planning agent only if reconciliation exposes a product, plan, architecture, or high-risk security contradiction. Prefer Sol, but use `sol_route_fallback` when unavailable.
+Final acceptance uses an independent Terra or audited Terra-fallback thread and valid same-candidate
+evidence. Return `TARGET_VERIFIED` only when every condition holds; escalate to the current main
+planning agent only if reconciliation exposes a product, plan, architecture, or high-risk security
+contradiction. Prefer Sol, but use `sol_route_fallback` when unavailable.

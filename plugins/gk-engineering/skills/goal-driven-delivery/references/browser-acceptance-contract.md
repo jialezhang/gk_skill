@@ -13,7 +13,8 @@ Do not use Playwright, Chrome control, generic computer-use, built-in browser to
 3. Operate the page with `ego-browser nodejs` helpers. Prefer `snapshotText()` and stable locators for semantic pages; use `captureScreenshot()` plus coordinate/keyboard actions for canvas or virtualized surfaces.
 4. After every material action, re-observe page state with `snapshotText()`, `pageInfo()`, a screenshot, or an authoritative readback. Do not infer success from a click completing.
 5. Record task-space ID, exact URL, action sequence, before/after observations, screenshot or raw-output paths, visible outcome, persisted outcome when applicable, runtime provenance, and failure details in the candidate evidence index.
-6. Run browser acceptance from an independent Terra acceptance context when the owning gate requires Terra independence. Ego Lite is the interaction surface; Terra remains responsible for the acceptance judgment.
+6. Run browser acceptance from an independent Terra or audited Terra-fallback acceptance context
+   when the owning gate requires independence. Ego Lite is always the interaction surface.
 7. After a prior round confirms the journey is complete, close the task space in a dedicated final Ego Lite invocation with `completeTaskSpace(nameOrId, { keep: false })`, unless user intervention requires an explicit handoff.
 
 ## Evidence validity

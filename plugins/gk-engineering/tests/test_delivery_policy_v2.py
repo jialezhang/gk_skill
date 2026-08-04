@@ -85,6 +85,31 @@ def sol_fallback_record(
     return record
 
 
+def luna_fallback_record(
+    turn_id: str,
+    task_class: str,
+    current_model: str = "gpt-5.7-current",
+    **extra: object,
+) -> dict[str, object]:
+    record = routing_record(
+        turn_id,
+        task_class,
+        current_model,
+        request_explicit=False,
+        allowed_reason="luna_route_fallback",
+        routing_surface="main_agent",
+        model_selection_scope="current_context",
+        write_allowed=task_class not in {"routing_canary", "routing_transition"},
+        fallback_attempted=True,
+        fallback_from_model="gpt-5.6-luna",
+        fallback_failure_reason="model_not_listed",
+        fallback_evidence_source="live_routing_surface",
+        fallback_evidence="active routing surface does not expose gpt-5.6-luna",
+    )
+    record.update(extra)
+    return record
+
+
 class ModelHandshakeTests(unittest.TestCase):
     def validate(self, records: list[dict[str, object]], *args: str) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory() as tmp:
@@ -294,6 +319,18 @@ class ModelHandshakeTests(unittest.TestCase):
         result = self.validate([fallback], "--require-handshake")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("SOL_FALLBACK_EVIDENCE_REQUIRED", result.stderr)
+
+    def test_luna_task_continues_on_current_model_when_luna_is_unavailable(self) -> None:
+        fallback = luna_fallback_record("verification-fallback-1", "routine_verification")
+        result = self.validate([fallback], "--require-handshake")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_luna_fallback_requires_live_surface_evidence(self) -> None:
+        fallback = luna_fallback_record("verification-fallback-1", "routine_verification")
+        fallback.pop("fallback_evidence")
+        result = self.validate([fallback], "--require-handshake")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("LUNA_FALLBACK_EVIDENCE_REQUIRED", result.stderr)
 
     def test_routing_canary_accepts_current_model_for_unavailable_sol(self) -> None:
         records: list[dict[str, object]] = []
@@ -682,6 +719,19 @@ class CandidateEvidenceTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("RUNTIME_PROVENANCE_CANDIDATE_MISMATCH", result.stderr)
 
+    def test_final_acceptance_accepts_audited_terra_fallback(self) -> None:
+        manifest = self.manifest()
+        acceptance = manifest["final_acceptance"]
+        self.assertIsInstance(acceptance, dict)
+        assert isinstance(acceptance, dict)
+        acceptance.update(
+            model="gpt-5.7-current",
+            model_route="terra_route_fallback",
+            fallback_from_model="gpt-5.6-terra",
+        )
+        result = self.validate(manifest)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
 
 class CompletionGateTests(unittest.TestCase):
     @staticmethod
@@ -895,6 +945,9 @@ updated_at: "2026-07-23T00:00:00Z"
                 ("impl-thread", "spawn-impl-thread-2"),
                 ("impl-thread", "spawn-impl-thread-3"),
                 ("reviewer-1", "spawn-reviewer-1"),
+                ("reviewer-1", "spawn-reviewer-1-1"),
+                ("reviewer-1", "spawn-reviewer-1-2"),
+                ("reviewer-1", "spawn-reviewer-1-3"),
             ]
             spawn_events = [
                 {
@@ -926,6 +979,21 @@ updated_at: "2026-07-23T00:00:00Z"
             final_acceptance["implementation_thread_ids"] = [
                 "impl-thread"
             ]
+            final_route = next(
+                (
+                    record
+                    for record in records
+                    if record.get("task_class") == "final_target_acceptance"
+                    and record.get("thread_id") == "reviewer-1"
+                    and record.get("turn_id") == "reviewer-turn-1"
+                ),
+                None,
+            )
+            if final_route is not None:
+                final_acceptance["model"] = final_route["observed_model"]
+                if final_route.get("allowed_reason") == "terra_route_fallback":
+                    final_acceptance["model_route"] = "terra_route_fallback"
+                    final_acceptance["fallback_from_model"] = "gpt-5.6-terra"
             candidate = root / "candidate-evidence.json"
             candidate.write_text(json.dumps(candidate_manifest), encoding="utf-8")
             telemetry = root / "completion-telemetry.json"
@@ -974,6 +1042,21 @@ updated_at: "2026-07-23T00:00:00Z"
         result = self.run_complete_gate(self.complete_routing_records())
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_complete_gate_uses_raw_native_evidence_without_route_guard_nonce(self) -> None:
+        records = self.complete_routing_records()
+        optional_hook_fields = {
+            "parent_permission_mode",
+            "observed_permission_mode",
+            "permission_inherited",
+            "permission_source",
+            "route_guard_nonce",
+        }
+        for record in records:
+            for field in optional_hook_fields:
+                record.pop(field, None)
+        result = self.run_complete_gate(records)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_complete_gate_does_not_block_when_sol_is_unavailable(self) -> None:
         records: list[dict[str, object]] = []
         for record in self.complete_routing_records():
@@ -994,6 +1077,33 @@ updated_at: "2026-07-23T00:00:00Z"
                         thread_id="transition-thread",
                         phase="transition",
                         sequence_index=3,
+                    )
+                )
+            else:
+                records.append(record)
+        result = self.run_complete_gate(records)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_complete_gate_does_not_block_when_luna_is_unavailable(self) -> None:
+        records: list[dict[str, object]] = []
+        for record in self.complete_routing_records():
+            if record.get("thread_id") == "canary-luna":
+                records.append(
+                    luna_fallback_record(
+                        str(record["turn_id"]),
+                        "routing_canary",
+                        thread_id="canary-luna",
+                        phase=str(record["phase"]),
+                    )
+                )
+            elif record.get("turn_id") == "transition-2":
+                records.append(
+                    luna_fallback_record(
+                        "transition-2",
+                        "routing_transition",
+                        thread_id="transition-thread",
+                        phase="transition",
+                        sequence_index=2,
                     )
                 )
             else:
@@ -1023,6 +1133,36 @@ updated_at: "2026-07-23T00:00:00Z"
                     "controller-thread",
                     "spawn-impl-thread",
                 ),
+            )
+        )
+        result = self.run_complete_gate(records)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_complete_gate_accepts_independent_terra_final_acceptance_fallback(self) -> None:
+        records = [
+            record
+            for record in self.complete_routing_records()
+            if record.get("turn_id") not in {"review-handshake", "reviewer-turn-1"}
+        ]
+        records.append(
+            routing_record(
+                "reviewer-turn-1",
+                "final_target_acceptance",
+                "gpt-5.7-current",
+                thread_id="reviewer-1",
+                request_explicit=False,
+                allowed_reason="terra_route_fallback",
+                routing_surface="native_subagent",
+                model_selection_scope="context_creation",
+                write_allowed=False,
+                fallback_attempted=True,
+                fallback_from_model="gpt-5.6-terra",
+                fallback_attempts=terra_fallback_attempts(
+                    "controller-thread",
+                    "spawn-reviewer-1",
+                ),
+                implementation_thread_ids=["impl-thread"],
+                independence_verified=True,
             )
         )
         result = self.run_complete_gate(records)

@@ -1,9 +1,9 @@
 {
-  "description": "Proactively validates delegated Terra implementation routing and permission inheritance.",
+  "description": "Provides best-effort Terra routing diagnostics; raw native spawn and rollout evidence remain authoritative.",
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "^Agent$",
+        "matcher": "^(Agent|spawn_agent|collaboration\\.spawn_agent)$",
         "hooks": [
           {
             "type": "command",

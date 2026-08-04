@@ -26,7 +26,10 @@ Read these references completely before routing a stage:
 7. Invoke `$assess-goal-scope` before governed implementation planning. A P80 above 8 hours triggers a split discussion; a P80 above 10 hours triggers a strong recommendation. If the user-input mechanism supports auto-resolution, wait 240 seconds. Silence resolves only Goal packaging to `split_decision: single_goal` with `decision_source: timeout_default_single`.
 8. The current main agent invokes `$create-implementation-plan` directly, preferring `gpt-5.6-sol` and otherwise continuing on the current model under `sol_route_fallback`, and uses the validated scope decision. A split decision creates one program baseline and 2–3 bounded Goal plans; a single decision creates one Goal plan.
 9. Stop after `PLAN_REVIEW_REQUIRED`. Continue only after explicit approval of the exact plan/tasks revisions.
-10. Run the Sol/Terra/Luna model-routing Canary before formal governed execution. A live, evidenced `sol_route_fallback` satisfies the Sol slots when Sol is unavailable; do not block Goal delivery solely because Sol is absent. Other unverified or mismatched routes still block their dependent evidence.
+10. Run the Sol/Terra/Luna model-routing Canary before formal governed execution. A live,
+    role-specific current-model fallback satisfies unavailable slots; Terra fallback additionally
+    requires three failed raw route attempts. Do not block Goal delivery solely because a preferred
+    role model is absent. Other unverified or mismatched routes still block their dependent evidence.
 11. Create one runtime Program Goal and `program-state.yaml` before the first governed Goal starts. Keep it active across every milestone; do not complete or replace it when one Goal reaches `GOAL_TARGET_VERIFIED`.
 12. Invoke `$goal-driven-delivery` once per approved Goal. Keep one visible Program task by default; each Goal receives its own worktree, branch, state, checkpoint sequence, and internal model-routed context. Create another visible Codex task only when the required model is unavailable through native subagents, record `VISIBLE_MODEL_CONTEXT_REQUIRED`, and never use a task name as model evidence. One program controller owns the cross-Goal dependency graph, fixed progress denominators, Agent budget, candidate evidence, and coordination-wait accounting.
 13. When multiple Goals finish, invoke `$integrate-goals` to merge them in an integration worktree and verify a clean integration commit.
@@ -46,8 +49,12 @@ Prefer `gpt-5.6-sol` for these stages. If Sol is not listed by the live routing 
 
 - Product decisions belong to the user.
 - PRD authorship/revision and implementation-plan authorship/revision belong only to the current main agent. Prefer Sol; if unavailable, the current model retains ownership under `sol_route_fallback`. Scope judgment and other high-risk architecture decisions follow the same rule.
-- Runtime scheduling, implementation, debugging, integration, and retries belong to Terra. Browser acceptance, 阶段真实用户旅程, and browser portions of Provider/final acceptance use Terra judgment while every browser interaction runs exclusively through Ego Lite `ego-browser`.
-- Focused tests, typecheck, build, diff checks, baseline comparison, checklist review, and deterministic evidence reconciliation belong to Luna.
+- Runtime scheduling, implementation, debugging, integration, and retries prefer Terra. After
+  three failed raw Terra route attempts, the current model owns them under `terra_route_fallback`.
+  Browser interactions always run exclusively through Ego Lite `ego-browser`.
+- Focused tests, typecheck, build, diff checks, baseline comparison, checklist review, and
+  deterministic evidence reconciliation prefer Luna; use `luna_route_fallback` on the current
+  model when Luna is not exposed by the active routing surface.
 - One program controller owns program truth; each Goal controller owns only its Goal state.
 
 Never infer approval from silence, earlier discussion, or a model's confidence.
@@ -60,14 +67,28 @@ Use explicit model selection according to the routing surface:
 - delivery control, implementation, debugging, local rework, and integration: prefer
   `gpt-5.6-terra`; if three sequential delegated switch attempts fail, the current main agent
   continues directly with its existing model and records all attempts in `terra_route_fallback`;
-- browser acceptance, 阶段真实用户旅程, runtime lifecycle acceptance, Provider-boundary acceptance, and final exact-target acceptance: `gpt-5.6-terra`; all browser operations and browser evidence must use Ego Lite `ego-browser`;
-- focused checks, typecheck, build, diff checks, baseline comparison, checklist review, and deterministic evidence reconciliation: `gpt-5.6-luna`.
+- browser acceptance, 阶段真实用户旅程, runtime lifecycle acceptance, Provider-boundary acceptance,
+  and final exact-target acceptance: prefer `gpt-5.6-terra`; after three failed raw route attempts,
+  use audited `terra_route_fallback`, with final acceptance in a fresh read-only reviewer context;
+  all browser operations and browser evidence must use Ego Lite `ego-browser`;
+- focused checks, typecheck, build, diff checks, baseline comparison, checklist review, and
+  deterministic evidence reconciliation: prefer `gpt-5.6-luna`; if unavailable on the active
+  surface, use the current model under `luna_route_fallback`.
 
 For native subagents, select the model at context creation with `fork_turns: "none"` or a positive limited-history value. Full-history forks inherit the parent model and are forbidden for model overrides. When the follow-up API has no model parameter, reuse only the verified context and validate its actual model after every turn. On surfaces that support per-turn selection, pass the model explicitly every turn.
 
 Read actual `turn_context.payload.model` metadata from the runtime rollout after every turn. Append the thread/turn identity, routing surface, model-selection scope, fork mode when applicable, explicit-request fact, requested model, runtime-observed model, observation source, phase, and verification status to `model-routing.jsonl`. Validate the log against the raw rollout rather than trusting its copied `observed_model`. A mismatch returns `MODEL_ROUTE_MISMATCH`, invalidates that turn's output as delivery evidence, and stops dependent work. Never accept an Agent name, `agent_type`, prompt claim, UI label, or self-report as model evidence.
 
-The live Canary requires an initial and follow-up turn for each available required model, plus the same-thread sequence Terra → Luna → Sol → Terra. When Sol is unavailable, its two Canary turns and transition slot execute on the current model and carry valid `sol_route_fallback` evidence. Every new delegated execution or acceptance context starts with a no-write routing handshake. For implementation-class work, discard each failed Terra context and try again sequentially, up to three total attempts. After the third failure, return execution to the current main agent/model under the auditable fallback contract; never create parallel handshakes or an unbounded retry loop. Unknown task classes, unavailable rollout evidence for the model that actually executed work, and implicit, incomplete, or forged routing records still block acceptance evidence.
+The live Canary requires an initial and follow-up turn for each role, plus the same-thread sequence
+Terra → Luna → Sol → Terra. When a preferred role model is unavailable, its slots execute on the
+current model with the corresponding audited fallback; Terra still requires three failed raw spawn
+attempts. Every new delegated execution or acceptance context starts with a no-write routing
+handshake. Raw controller `spawn_agent` arguments and child `turn_context.payload.model` are the
+authoritative proof; a route-guard nonce is optional supplemental evidence. After the third Terra
+failure, use the current model under the auditable fallback contract; never create parallel
+handshakes or an unbounded retry loop. Unknown task classes, unavailable raw rollout evidence for
+the model that actually executed work, and incomplete or forged routing records still block
+acceptance evidence.
 
 Outside PRD and implementation-planning work, use a fresh reviewer context when independence matters. Sol is an escalation path, not the default verifier.
 

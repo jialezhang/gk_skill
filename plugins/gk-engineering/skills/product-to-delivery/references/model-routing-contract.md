@@ -22,10 +22,10 @@ subagents. Native model overrides require `fork_turns: "none"` or a positive lim
 value. A full-history fork, Agent name, `agent_type`, role, prompt, or UI label is not model
 selection.
 
-Required handshake record:
+Required handshake record (route-guard permission and nonce fields may be appended when available):
 
 ```json
-{"thread_id":"...","turn_id":"handshake-...","task_class":"routing_handshake","routing_surface":"native_subagent","model_selection_scope":"context_creation","fork_turns":"none","spawn_controller_thread_id":"...","spawn_call_id":"...","requested_model":"gpt-5.6-terra","request_explicit":true,"observed_model":"gpt-5.6-terra","observed_source":"rollout.turn_context.payload.model","parent_permission_mode":"bypassPermissions","observed_permission_mode":"bypassPermissions","permission_inherited":true,"permission_source":"hook.SubagentStart.permission_mode","route_guard_nonce":"0123456789abcdef01234567","phase":"handshake","verified":true,"allowed_reason":"routing_canary","write_allowed":false}
+{"thread_id":"...","turn_id":"handshake-...","task_class":"routing_handshake","routing_surface":"native_subagent","model_selection_scope":"context_creation","fork_turns":"none","spawn_controller_thread_id":"...","spawn_call_id":"...","requested_model":"gpt-5.6-terra","request_explicit":true,"observed_model":"gpt-5.6-terra","observed_source":"rollout.turn_context.payload.model","phase":"handshake","verified":true,"allowed_reason":"routing_canary","write_allowed":false}
 ```
 
 Required execution record:
@@ -95,16 +95,30 @@ Required current-model record when Sol is unavailable:
 
 Allowed Sol failure reasons are `model_not_listed`, `route_unavailable`, `selection_rejected`, and `runtime_model_mismatch`. Evidence sources are `live_model_capabilities`, `model_selection_error`, or `runtime_turn_context`. The requested and observed fallback model must match the actual current model. `request_explicit` is false because the stage did not independently select the fallback model. This record preserves main-agent ownership and permits the Goal lifecycle to continue; it must never be replaced by a Sol-named child or an unevidenced claim.
 
+Use the same current-model shape with `allowed_reason: "luna_route_fallback"` and
+`fallback_from_model: "gpt-5.6-luna"` when the active routing surface does not expose Luna. Luna
+fallback remains limited to deterministic checks, reconciliation, and Canary/transition slots.
+Use `allowed_reason: "terra_route_fallback"` only after three raw explicit Terra spawn attempts.
+For final acceptance that fallback must execute in a fresh read-only reviewer context outside all
+implementation threads and preserve `implementation_thread_ids` plus
+`independence_verified: true`.
+
 Validate with:
 
 ```bash
 python3 scripts/validate_model_routing.py <model-routing.jsonl> \
   --require-handshake \
-  --require-permission-inheritance \
   --require-runtime-evidence
 ```
 
-Run the command from the plugin root. The validator locates the rollout by `thread_id`, matches `turn_id`, and reads every matching `turn_context.payload.model`. For native handshakes it also locates the original controller `spawn_agent` call by `spawn_controller_thread_id` and `spawn_call_id`, then verifies the actual `model`, `fork_turns`, and absence of a conflicting `agent_type`. Permission inheritance is recorded by the bundled `SubagentStart` route guard and bound to its one-time nonce. Copied routing fields are not authoritative. Missing, ambiguous, or mismatched runtime evidence fails validation. A rejected record cannot support a gate or completion claim.
+Run the command from the plugin root. The validator locates the rollout by `thread_id`, matches
+`turn_id`, and reads every matching `turn_context.payload.model`. For native handshakes it also
+locates the original controller `spawn_agent` call by `spawn_controller_thread_id` and
+`spawn_call_id`, then verifies the actual `model`, `fork_turns`, and absence of a conflicting
+`agent_type`. Permission inheritance and the one-time nonce are optional supplemental evidence
+emitted by the bundled route guard when that hook surface is active. Copied routing fields are not
+authoritative. Missing, ambiguous, or mismatched raw runtime evidence fails validation; a missing
+nonce by itself does not. A rejected record cannot support a gate or completion claim.
 
 ## Live Canary
 
@@ -130,20 +144,28 @@ main context using the fallback record above. Do not retry beyond three. Unknown
 missing runtime evidence, incomplete or forged fallback attempts, and mismatched execution records
 still block delivery evidence.
 
-When Sol is unavailable, execute its initial/follow-up Canary turns and the third transition slot on the current model. Each substituted turn must carry the complete `sol_route_fallback` record above with `write_allowed: false`. The validator normalizes only those evidenced Sol slots; absent evidence, Terra/Luna substitution, or fallback in any other transition slot remains a failure. Sol absence by itself never blocks the Goal.
+When Sol or Luna is unavailable on the active routing surface, execute its initial/follow-up Canary
+turns and corresponding transition slot on the current model. Each substituted turn must carry the
+complete role-specific fallback record with `write_allowed: false`. Terra Canary substitution still
+requires three raw failed Terra spawn attempts. An absent preferred role model by itself never
+blocks the Goal.
 
-Use a separate visible Codex task for Luna when the native subagent surface does not expose a Luna model override. A task named “Luna verifier” is not Luna evidence.
+Prefer a separate visible Codex task for Luna when that surface exposes the model. Otherwise use
+the current context under `luna_route_fallback`. A task named “Luna verifier” is not Luna evidence.
 
 ## Role boundaries
 
 - **Sol:** preferred for product discovery, PRD authorship, scope assessment, implementation planning, product decisions, architecture/plan contradictions, and high-risk security judgment. If unavailable, the current main model performs the same non-delegable work under `sol_route_fallback`.
 - **Terra:** preferred delegated model for implementation, debugging, integration, and
   code-quality review; browser acceptance, 阶段真实用户旅程, runtime/provider-boundary acceptance,
-  and final exact-target acceptance retain their explicit Terra requirements. When delegated
-  implementation cannot switch to Terra, the existing main model continues directly under the
-  recorded fallback contract.
+  and final exact-target acceptance retain Terra as the preferred route. When Terra cannot be
+  verified after three raw attempts, the current model continues under the audited fallback;
+  final acceptance additionally requires a fresh independent read-only reviewer context.
 - **Luna:** deterministic low-complexity checks only: focused tests, typecheck, build, diff check, baseline comparison, checklist review, and evidence reconciliation. Luna must not own browser execution, runtime lifecycle judgment, user-experience judgment, or final acceptance.
 
 PRD and implementation-planning use is restricted further: the current main agent must perform all authorship, review, validation, and revision. Prefer Sol, but continue on the current model with audited `sol_route_fallback` evidence when Sol is unavailable. A controller must not satisfy this route by creating a Sol child agent, subagent, separate reviewer context, or separate task.
 
-Final exact-target acceptance must run in a fresh Terra thread that is not one of the implementation threads. Its record must include `implementation_thread_ids` and `independence_verified: true`; otherwise the acceptance evidence is invalid.
+Final exact-target acceptance must run in a fresh Terra thread, or a fresh audited current-model
+Terra-fallback thread, that is not one of the implementation threads. Its record must include
+`implementation_thread_ids` and `independence_verified: true`; otherwise the acceptance evidence is
+invalid.

@@ -41,7 +41,7 @@ def spawn_payload(**tool_input: object) -> dict[str, object]:
         "hook_event_name": "PreToolUse",
         "permission_mode": "bypassPermissions",
         "model": "gpt-5.6-sol",
-        "tool_name": "Agent",
+        "tool_name": "collaboration.spawn_agent",
         "tool_use_id": "spawn-call-1",
         "tool_input": {
             "task_name": "terra_implementation",
@@ -54,6 +54,11 @@ def spawn_payload(**tool_input: object) -> dict[str, object]:
 
 
 class TerraRouteGuardTests(unittest.TestCase):
+    def test_native_spawn_agent_tool_name_is_intercepted(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            result = run_hook(spawn_payload(), Path(tmp) / "state.sqlite")
+        self.assertIn("SOL_TERRA_ROUTE_PENDING", json.dumps(hook_output(result)))
+
     def test_non_implementation_subagent_is_not_intercepted(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             result = run_hook(

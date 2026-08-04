@@ -19,8 +19,9 @@ Every executor receives:
 13. no-write handshake turn ID and required task-class/model route;
 14. baseline evidence, current impact map, `test_level`, Provider mode/cost limit, invalidation keys, and candidate identity;
 15. acceptance claims proved by the assigned execution scenario and its evidence destination.
-16. for delegated implementation: route-guard nonce, parent and observed permission modes, and the
-    exact `SOL_TERRA_ROUTE_VERIFIED` handshake marker.
+16. for delegated implementation: the controller spawn-call identity and child runtime turn-model
+    evidence. Include route-guard nonce and permission fields only when that optional hook surface
+    emits them.
 17. after three failed Terra switches: the ordered three-item spawn-attempt list, each normalized
     failure reason, current main model, and the `terra_route_fallback` routing record destination.
     Do not send the packet to a failed child; after attempt three, the main agent consumes it

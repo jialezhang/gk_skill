@@ -14,7 +14,7 @@ request with no approved PRD
    → user chooses split or single Goal (240s silence defaults to single)
    → $create-implementation-plan
    → user approves plan
-   → verified Sol/Terra/Luna routing Canary (audited current-model fallback when Sol is unavailable)
+   → verified Sol/Terra/Luna routing Canary (audited current-model fallback when a role model is unavailable)
    → one or more $goal-driven-delivery sessions/worktrees
    → checkpoint commit + push + progress report
    → $integrate-goals when delivery was split
@@ -88,10 +88,16 @@ $goal-retrospective
 - Technical changes may bypass PRD creation only after the user explicitly chooses `PRD_NOT_REQUIRED`; if product or governed risk boundaries emerge, the controller reclassifies before continuing.
 - Scope is inspected before planning. P80 above 8 hours recommends splitting; above 10 hours strongly recommends it. Users may still choose one Goal.
 - Sol is preferred for PRD, scope, planning, and genuine product/plan/architecture/high-risk security conflicts. If Sol is unavailable, the current main model continues under audited `sol_route_fallback`; Goal work does not block on Sol availability.
-- Terra handles delivery control, implementation, debugging, rework, and integration.
-- Luna handles routine checks and build/checklist review.
-- Terra judges browser E2E, stage journeys, runtime boundaries, and final acceptance. Every browser interaction and browser evidence is produced exclusively through Ego Lite `ego-browser`.
-- Model selection is explicit on every turn. Runtime metadata—not an Agent name or self-report—must prove the observed model. A mismatch fails closed.
+- Terra is preferred for delivery control, implementation, debugging, rework, integration, and
+  acceptance. After three failed raw Terra route attempts, the current model continues under
+  `terra_route_fallback`; final acceptance still uses a fresh independent read-only reviewer.
+- Luna is preferred for routine checks and build/checklist review. If the active routing surface
+  does not expose Luna, the current model continues under `luna_route_fallback`.
+- Every browser interaction and browser evidence is produced exclusively through Ego Lite
+  `ego-browser`, including fallback acceptance.
+- Raw native spawn arguments and runtime `turn_context.payload.model` prove routing. The optional
+  route-guard nonce is supplemental evidence; its absence alone does not block the Gate. A model
+  mismatch still fails closed.
 - The normal Agent target is 8, soft limit 12, cumulative hard limit 20, maximum nesting depth 1, and at most 3 parallel Goal sessions.
 - Each runnable stage ends with focused checks, an owned-file commit, verified push, and a fixed-denominator progress report.
 - Multi-Goal delivery is accepted only after a clean integration commit passes the complete approved verification path.

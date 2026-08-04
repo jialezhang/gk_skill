@@ -76,7 +76,7 @@ plan_version: 0.1.0
 - Same-candidate evidence index:
 - Evidence reuse rule:
 - Invalidation keys:
-- Independent Terra final-acceptance thread:
+- Independent Terra or audited Terra-fallback final-acceptance thread:
 
 ## Gate Matrix
 

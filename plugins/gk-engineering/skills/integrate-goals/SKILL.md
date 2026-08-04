@@ -5,7 +5,9 @@ description: Use when two or more approved Goal branches must be combined, verif
 
 # Integrate Goals
 
-Combine only committed Goal outputs. Integration is a Terra implementation task, Luna deterministic checking, and independent Terra final acceptance; it is not a second planning stage.
+Combine only committed Goal outputs. Prefer Terra for integration, Luna for deterministic checking,
+and Terra for independent final acceptance. Use the corresponding audited current-model fallback
+when a preferred route is unavailable; it is not a second planning stage.
 
 Read [references/integration-contract.md](references/integration-contract.md) completely.
 Read [../product-to-delivery/references/native-agent-routing.md](../product-to-delivery/references/native-agent-routing.md) completely.
@@ -21,7 +23,9 @@ Require every Goal to provide a pushed clean commit, `TARGET_VERIFIED` evidence 
 3. Route contract-preserving conflicts to the Terra integration owner. Pause and escalate only genuine plan/architecture/product/security contradictions to the current main planning agent or the user. Prefer Sol; if unavailable, use the current model under `sol_route_fallback`.
 4. Run focused boundary checks after each merge wave. Reconcile valid evidence and explicitly invalidate evidence whose candidate, consumed artifact, or runtime provenance no longer applies. Then run the approved full suite/build once on the frozen integrated candidate and only the exact-target scenarios whose claims remain uncovered or invalidated. Re-capture runtime provenance on the integrated target; a Goal branch process or build is never evidence for the integration branch.
 5. Commit the integrated result, verify the worktree is clean, push the integration branch, and record `program-integration.json` from [assets/program-integration-template.json](assets/program-integration-template.json).
-6. Run the validator, then invoke `$review-delivery-gate` with an independent Terra acceptance context on the clean integration commit. The integration implementer and final acceptance reviewer must have different thread IDs.
+6. Run the validator, then invoke `$review-delivery-gate` with an independent Terra or audited
+   Terra-fallback acceptance context on the clean integration commit. The integration implementer
+   and final acceptance reviewer must have different thread IDs.
 7. Aggregate Goal session IDs, commits, checkpoint reports, model-routing records, exact-turn token usage by model/stage, verification evidence, invalid runs, and unresolved risks into the Program completion handoff consumed by `$goal-retrospective`. Generate telemetry with `python3 scripts/collect_delivery_telemetry.py <model-routing.jsonl> --completion-snapshot --output <snapshot>` before the Program terminal transition; merge per-Goal snapshots without replaying forked parent turns. Mark unavailable telemetry explicitly; never invent it. The Program controller invokes the retrospective only after capturing the runtime completion receipt.
 
 Validate with:
@@ -30,4 +34,8 @@ Validate with:
 python3 scripts/validate_integration_manifest.py <program-integration.json>
 ```
 
-Program completion requires independent Terra `TARGET_VERIFIED`, a clean pushed integration commit, no required Goal or release work remaining for the declared completion scope, and a passing `scripts/validate_completion_gate.py` run that includes this integration manifest and raw runtime model evidence. Goal-level verification or declared routing booleans never complete the Program.
+Program completion requires independent Terra or audited Terra-fallback `TARGET_VERIFIED`, a clean
+pushed integration commit, no required Goal or release work remaining for the declared completion
+scope, and a passing `scripts/validate_completion_gate.py` run that includes this integration
+manifest and raw runtime model evidence. Goal-level verification or declared routing booleans never
+complete the Program.

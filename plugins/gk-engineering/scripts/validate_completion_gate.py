@@ -128,7 +128,6 @@ def main() -> int:
             "--require-canary",
             "--require-transition-canary",
             "--require-handshake",
-            "--require-permission-inheritance",
             "--require-runtime-evidence",
             "--sessions-root",
             str(args.sessions_root),
@@ -203,8 +202,17 @@ def main() -> int:
             "FINAL_ACCEPTANCE_ROUTING_RECORD_REQUIRED "
             f"thread={reviewer_thread!r} turn={reviewer_turn!r}"
         )
-    elif matching_acceptance[0].get("requested_model") != "gpt-5.6-terra":
-        errors.append("TERRA_FINAL_ACCEPTANCE_REQUIRED")
+    else:
+        acceptance_route = matching_acceptance[0]
+        terra_or_fallback = (
+            acceptance_route.get("requested_model") == "gpt-5.6-terra"
+            or (
+                acceptance_route.get("allowed_reason") == "terra_route_fallback"
+                and acceptance_route.get("fallback_from_model") == "gpt-5.6-terra"
+            )
+        )
+        if not terra_or_fallback:
+            errors.append("TERRA_OR_AUDITED_FALLBACK_FINAL_ACCEPTANCE_REQUIRED")
 
     implementation_threads = acceptance.get("implementation_thread_ids")
     routed_implementation_threads = {

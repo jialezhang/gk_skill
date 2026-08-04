@@ -14,6 +14,7 @@ from typing import Any
 
 
 TERRA_MODEL = "gpt-5.6-terra"
+NATIVE_AGENT_TOOL_NAMES = {"Agent", "spawn_agent", "collaboration.spawn_agent"}
 ROUTE_CLASS_MARKER = "route_class: terra_implementation"
 HANDSHAKE_MARKER = "ROUTING HANDSHAKE ONLY"
 PENDING_TTL_SECONDS = 60
@@ -142,7 +143,7 @@ def valid_fork_turns(value: object) -> bool:
 
 
 def handle_pre_tool_use(payload: dict[str, Any]) -> None:
-    if payload.get("tool_name") != "Agent":
+    if payload.get("tool_name") not in NATIVE_AGENT_TOOL_NAMES:
         return
     tool_input = payload.get("tool_input")
     if not isinstance(tool_input, dict) or not implementation_route(tool_input):

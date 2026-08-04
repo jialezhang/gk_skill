@@ -23,6 +23,8 @@
     "unavailable_fields": []
   },
   "final_acceptance_model": "gpt-5.6-terra",
+  "final_acceptance_route": "",
+  "final_acceptance_fallback_from_model": "",
   "final_acceptance_thread_id": "",
   "final_acceptance_turn_id": "",
   "model_routing_log": "",

@@ -8,17 +8,19 @@ The program controller owns cross-Goal dependencies, cumulative Agent budget, an
 
 | Work | Default role | Default model/effort |
 | --- | --- | --- |
-| Runtime scheduling and integration | `terra_delivery` | `gpt-5.6-terra` / high |
-| Frontend implementation | `frontend_executor` | `gpt-5.6-terra` / high |
-| Backend implementation | `backend_executor` | `gpt-5.6-terra` / high |
-| Data/migration implementation | `data_executor` | `gpt-5.6-terra` / high |
-| Focused debugging | `debugger` | `gpt-5.6-terra` / high |
-| Deterministic test/build/checklist execution | `luna_verifier` | `gpt-5.6-luna` / medium or high |
-| Browser, lifecycle, Provider, and stage journey acceptance | `terra_acceptance` using Ego Lite `ego-browser` for every browser operation | `gpt-5.6-terra` / high |
-| Final exact-target acceptance | `terra_final_acceptance` | `gpt-5.6-terra` / high |
+| Runtime scheduling and integration | `terra_delivery` | prefer `gpt-5.6-terra`; audited current-model fallback after three raw failures |
+| Frontend implementation | `frontend_executor` | prefer `gpt-5.6-terra`; audited current-model fallback after three raw failures |
+| Backend implementation | `backend_executor` | prefer `gpt-5.6-terra`; audited current-model fallback after three raw failures |
+| Data/migration implementation | `data_executor` | prefer `gpt-5.6-terra`; audited current-model fallback after three raw failures |
+| Focused debugging | `debugger` | prefer `gpt-5.6-terra`; audited current-model fallback after three raw failures |
+| Deterministic test/build/checklist execution | `luna_verifier` | prefer `gpt-5.6-luna`; otherwise `luna_route_fallback` |
+| Browser, lifecycle, Provider, and stage journey acceptance | `terra_acceptance` using Ego Lite `ego-browser` for every browser operation | prefer `gpt-5.6-terra`; otherwise audited fallback after three raw failures |
+| Final exact-target acceptance | `terra_final_acceptance` | prefer `gpt-5.6-terra`; otherwise fresh independent audited fallback reviewer |
 | Plan/architecture/security escalation | current main agent | prefer `gpt-5.6-sol`; otherwise current model under `sol_route_fallback` |
 
-Model identity is a runtime contract. Pass the explicit model on every turn and verify observed metadata; a role name is not evidence.
+Model identity is a runtime contract. Pass the explicit preferred model when the surface supports it
+and verify observed metadata; a role name is not evidence. Raw native spawn arguments plus child
+runtime model are authoritative, while route-guard nonce evidence is optional.
 
 All browser acceptance uses the exclusive Ego Lite contract in [browser-acceptance-contract.md](browser-acceptance-contract.md); the model decides the verdict, while `ego-browser` owns the browser interaction and evidence capture.
 

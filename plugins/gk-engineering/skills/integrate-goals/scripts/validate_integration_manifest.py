@@ -129,8 +129,14 @@ def main() -> int:
             for key in ("snapshot_path", "captured_at", "source"):
                 if not completion.get(key):
                     errors.append(f"integration completion telemetry requires {key}")
-        if data.get("final_acceptance_model") != "gpt-5.6-terra":
-            errors.append("TERRA_FINAL_ACCEPTANCE_REQUIRED")
+        acceptance_model = data.get("final_acceptance_model")
+        acceptance_route = data.get("final_acceptance_route")
+        if acceptance_model != "gpt-5.6-terra" and acceptance_route != "terra_route_fallback":
+            errors.append("TERRA_OR_AUDITED_FALLBACK_FINAL_ACCEPTANCE_REQUIRED")
+        if acceptance_route == "terra_route_fallback" and data.get(
+            "final_acceptance_fallback_from_model"
+        ) != "gpt-5.6-terra":
+            errors.append("final acceptance fallback_from_model must be gpt-5.6-terra")
         acceptance_thread = data.get("final_acceptance_thread_id")
         acceptance_turn = data.get("final_acceptance_turn_id")
         routing_log = data.get("model_routing_log")

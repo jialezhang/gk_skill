@@ -18,11 +18,11 @@ When using Codex native subagents with an explicit model override:
    over the explicit spawn model; a label such as `team-executor` is not a safe Terra route.
 5. Add `route_class: terra_implementation` and `ROUTING HANDSHAKE ONLY` to the first message. Give
    the first turn no repository-write authority.
-6. Require the bundled route guard to return the matching `SOL_TERRA_ROUTE_VERIFIED nonce=...`
-   marker. It validates the actual `SubagentStart.model` and that the subagent inherited the
-   parent's creation-time `permission_mode`.
-7. Inspect the runtime rollout and validate `turn_context.payload.model` before sending an
-   execution packet.
+6. Inspect the controller rollout and bind the record to the original native `spawn_agent` call.
+7. Inspect the child runtime rollout and validate `turn_context.payload.model` before sending an
+   execution packet. These two raw records are authoritative. When the bundled route guard runs,
+   preserve its matching `SOL_TERRA_ROUTE_VERIFIED nonce=...` marker as supplemental diagnostics;
+   a missing marker alone does not invalidate otherwise complete raw native evidence.
 
 For native subagents, `request_explicit: true` means the model was explicitly selected for the
 context at creation. Record:
@@ -46,17 +46,15 @@ The main agent may still implement directly. These constraints apply when it del
 implementation, debugging, local rework, or integration to a native subagent. Make up to three
 sequential Terra switch attempts for the active execution path. After a verified handshake, reuse
 that same Terra context with `followup_task`; do not respawn one context per task. If creation is
-denied, the verification marker is absent, or the actual model/permission does not match, discard
-that child context before the next attempt. After the third failure, continue in the parent with
-its current model. The route guard permits one pending Terra switch per parent session at a time
-and expires abandoned pending state after 60 seconds; ordinary non-implementation subagents do not
-consume that pending route.
+denied, raw spawn/rollout evidence is unavailable, or the actual model does not match, discard that
+child context before the next attempt. After the third failure, continue in the parent with its
+current model. When the optional route guard is active, it permits one pending Terra switch per
+parent session at a time and expires abandoned pending state after 60 seconds; ordinary
+non-implementation subagents do not consume that pending route.
 
-Subagents inherit the parent permission mode at context creation. Record both
-`parent_permission_mode` and `observed_permission_mode` in the handshake record and require equality.
-When the user changes the parent permission mode, discard the old implementation subagent and
-create a new handshake context. A browser/UI claim that Full access is selected does not replace
-the observed hook value for the spawned context.
+When the route guard exposes permission inheritance, record both `parent_permission_mode` and
+`observed_permission_mode` and require equality. Do not synthesize these fields when the native
+runtime does not expose them. A browser/UI permission claim never replaces runtime evidence.
 
 Recommended delegated implementation spawn:
 
@@ -86,8 +84,9 @@ on every turn and record `routing_surface: "codex_task"` plus
 keep the current model and use the audited `sol_route_fallback` shape from
 [model-routing-contract.md](model-routing-contract.md); do not create a Sol-named child.
 
-If Terra cannot be selected and verified for delegated implementation, record
+If Terra cannot be selected and verified after three raw attempts, record
 `MODEL_ROUTE_UNAVAILABLE` or the more specific route-guard failure and continue the implementation
 in the current main context with its existing model. This is a parent-context fallback, not
-permission to create a misleadingly named replacement Agent. Browser/runtime acceptance and final
-exact-target acceptance retain their own model and independence requirements.
+permission to create a misleadingly named replacement Agent. Final exact-target acceptance may use
+the same audited fallback only in a fresh, read-only current-model reviewer context outside every
+implementation thread. Browser interactions still run exclusively through Ego Lite.

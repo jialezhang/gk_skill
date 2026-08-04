@@ -27,6 +27,8 @@
   "final_acceptance": {
     "candidate_commit": "",
     "model": "gpt-5.6-terra",
+    "model_route": "",
+    "fallback_from_model": "",
     "reviewer_thread_id": "",
     "reviewer_turn_id": "",
     "implementation_thread_ids": [],
