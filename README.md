@@ -19,6 +19,8 @@ request with no approved PRD
    → checkpoint commit + push + progress report
    → $integrate-goals when delivery was split
    → verified final acceptance
+   → runtime Goal completion receipt
+   → $goal-retrospective auditable post-completion review
 ```
 
 The toolkit keeps the two control planes separate:
@@ -37,7 +39,7 @@ codex plugin marketplace add .
 codex plugin add gk-engineering@gk-skill
 ```
 
-Restart Codex after installation so the seven skills are discovered.
+Restart Codex after installation so the eight skills are discovered.
 
 ## Install the Spec Kit layer into a project
 
@@ -74,6 +76,9 @@ $create-implementation-plan
 
 # After reviewing and explicitly approving plan.md and tasks.md:
 $goal-driven-delivery
+
+# After the governed Program Goal completes, the controller invokes this automatically:
+$goal-retrospective
 ```
 
 `$product-to-delivery` is the convenience controller. When no approved PRD exists and the request can remain a technical change, it first asks whether a PRD is needed and gives a recommendation. An explicit `PRD_NOT_REQUIRED` choice enters a lightweight technical-change lane without Spec Kit governance artifacts. The governed lane still pauses at both human approval gates. Silence never chooses the PRD lane, skips a PRD, or approves a PRD/plan. The only timed default is Goal packaging: after a 240-second unanswered split prompt, delivery remains one Goal and records `timeout_default_single`.
@@ -90,6 +95,7 @@ $goal-driven-delivery
 - The normal Agent target is 8, soft limit 12, cumulative hard limit 20, maximum nesting depth 1, and at most 3 parallel Goal sessions.
 - Each runnable stage ends with focused checks, an owned-file commit, verified push, and a fixed-denominator progress report.
 - Multi-Goal delivery is accepted only after a clean integration commit passes the complete approved verification path.
+- After the runtime Program Goal completes, `$goal-retrospective` reconciles the completion receipt, approved plan, delivery evidence, invalid runs, Git/runtime identity, time/Token口径, and next-cycle actions. It is a post-completion audit, not an acceptance gate.
 
 ## Skill depth
 
@@ -104,6 +110,7 @@ The entry `SKILL.md` files are intentionally short routing surfaces. They are no
 | `$goal-driven-delivery` | Per-Goal Terra ownership, worktree/session isolation, ready-queue scheduling, 20-Agent hard cap, per-turn routing records, checkpoint commits, retries, gates, and restart recovery |
 | `$integrate-goals` | Clean integration worktree, ordered Goal merge, conflict routing, full verification, Luna acceptance, and cross-session evidence/telemetry aggregation |
 | `$review-delivery-gate` | Luna routine evidence review, Terra code-quality review, Sol escalation classification, exact-target acceptance, and final PRD-to-runtime reconciliation |
+| `$goal-retrospective` | Post-completion Goal identity and cost reconciliation, actual-stage reconstruction, invalid-run accounting, plan/acceptance audit, and executable next-cycle rules |
 
 The planning skill is therefore not a reduced replacement for the earlier planning work. It preserves the high-value readiness, responsibility-replacement, verification, rollback, and Legacy-exit methods, while removing repeated prose and treating unsupported implementation guesses as `VERIFY_FIRST` rather than facts.
 

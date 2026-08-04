@@ -16,6 +16,7 @@ EXPECTED_SKILLS = {
     "assess-goal-scope",
     "create-implementation-plan",
     "goal-driven-delivery",
+    "goal-retrospective",
     "integrate-goals",
     "review-delivery-gate",
 }
@@ -82,6 +83,8 @@ def main() -> int:
         "hooks/terra_route_guard.py",
         "scripts/validate_completion_gate.py",
         "scripts/validate_completion_telemetry.py",
+        "skills/goal-retrospective/agents/openai.yaml",
+        "skills/goal-retrospective/references/report-template.md",
         "spec-kit/preset/preset.yml",
         "spec-kit/preset/templates/spec-template.md",
         "spec-kit/preset/templates/scope-assessment-template.yaml",

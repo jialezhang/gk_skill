@@ -36,6 +36,16 @@ PROGRAM_ACTIVE
 → COMPLETE
 ```
 
+`COMPLETE` remains the terminal Program state. After the runtime completion receipt is captured, run the post-completion audit outside the Program state machine:
+
+```text
+COMPLETE
+→ GOAL_RETROSPECTIVE_IN_PROGRESS
+→ GOAL_RETROSPECTIVE_RECORDED
+```
+
+Invoke `$goal-retrospective` once for the completed Program Goal. Supply the completion receipt, approved artifacts, per-Goal delivery evidence, integration evidence when applicable, Git/build/release identity, actual model-routing records, telemetry, invalidated runs, and final acceptance. The retrospective does not prove acceptance, change Goal status, or repair missing evidence. Unknown statistics remain explicitly unsampled or unverified. A write failure becomes `RETROSPECTIVE_PENDING` in the handoff, without rewriting a valid `COMPLETE` state.
+
 Never map a milestone checkpoint or `GOAL_TARGET_VERIFIED` to Program completion. Persist the Program in `program-state.yaml`, initialized from `assets/program-state-template.yaml`, and validate it before any completion transition:
 
 ```bash
@@ -77,6 +87,7 @@ Use the active Spec Kit feature directory when present. Otherwise use the reposi
 | Planning | program/Goal `plan.md`, `tasks.md`, `verification.md` |
 | Delivery | one `program-state.yaml`; per-Goal `delivery-state.yaml`, `model-routing.jsonl`, baseline/impact/evidence index, candidate manifest, exact-turn telemetry, decision log |
 | Integration | integration commit, merge/evidence index, program status |
+| Post-completion audit | Goal completion receipt and `goal-retrospective` document with evidence index, invalid runs, cost/statistics口径, deviations, and next-cycle actions |
 
 ## Handoffs
 
@@ -85,6 +96,7 @@ Use the active Spec Kit feature directory when present. Otherwise use the reposi
 - Scope → plan: validated estimate, Goal packaging decision, dependency/conflict graph, and decision source.
 - Plan → delivery: only `PLAN_APPROVED` artifacts with task IDs, dependencies, Goal/worktree/session ownership, gates, checkpoints, and completion criteria.
 - Delivery → review: current revision IDs, clean commit, diff, test output, runtime evidence, model-routing records, deviations, and escalation packet.
+- Completion → retrospective: immutable Goal completion receipt, exact accepted candidate identity, approved artifacts, delivery/integration state, raw acceptance evidence, routing and telemetry records, invalid runs, and remaining risks.
 
 ## Progress continuity
 

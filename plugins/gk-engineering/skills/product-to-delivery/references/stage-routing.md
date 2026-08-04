@@ -32,6 +32,9 @@
 | Goal checkpoint complete | commit, push, and progress report |
 | All Goals are `GOAL_TARGET_VERIFIED` | `integrate-goals` in a clean integration worktree |
 | Integrated target appears done | independent Terra exact-target acceptance; Sol only on allowed escalation |
+| Same-candidate completion gate passed | complete the runtime Program Goal and preserve the completion receipt |
+| Program Goal is `COMPLETE`, receipt captured, retrospective missing | invoke `goal-retrospective` once for the Program and write the auditable retrospective |
+| Retrospective write failed after valid completion | report `RETROSPECTIVE_PENDING` with the exact evidence gap and recovery action; do not rewrite Goal status |
 
 ## Stage invariants
 
@@ -46,6 +49,9 @@
 - Do not let approval survive a material content revision without explicit reapproval.
 - Do not let Spec Kit Workflow and native Goal delivery both schedule implementation.
 - Do not complete a runtime Program Goal when only one Goal or checkpoint is verified.
+- Do not invoke the automatic retrospective before the runtime Program Goal is complete and its completion receipt is captured.
+- Do not use a retrospective as acceptance evidence, infer missing statistics, or reopen a valid completion solely because the retrospective write failed.
+- Do not manufacture a retrospective for the technical-change lane when no runtime Goal exists; invoke it there only when the user explicitly requests a retrospective for an identifiable Goal.
 - Do not ask the user to decide discoverable technical facts.
 - The current main agent owns all PRD and implementation-plan creation, review, and revision. Do not spawn, create, or delegate any part of those stages to a child agent, subagent, separate reviewer context, or separate task.
 - Sol unavailability never blocks Goal work. Preserve current main-agent ownership, use the current model, and record complete `sol_route_fallback` evidence.

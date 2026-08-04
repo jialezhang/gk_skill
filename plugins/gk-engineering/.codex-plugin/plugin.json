@@ -1,7 +1,7 @@
 {
   "name": "gk-engineering",
-  "version": "0.2.1+codex.20260802165745",
-  "description": "Scope-sized product delivery with Sol-preferred current-model fallback, Terra execution and acceptance, Luna deterministic checks, Ego Lite browser evidence, persistent Program progress, runtime provenance, evidence lifecycle, and completion telemetry.",
+  "version": "0.2.1+codex.20260804014227",
+  "description": "Scope-sized product delivery with Sol-preferred current-model fallback, Terra execution and acceptance, Luna deterministic checks, Ego Lite browser evidence, persistent Program progress, runtime provenance, evidence lifecycle, completion telemetry, and auditable Goal retrospectives.",
   "author": {
     "name": "jialezhang"
   },
@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "GK Engineering",
     "shortDescription": "Sol-preferred planning, Terra delivery, Luna checks, Ego Lite acceptance.",
-    "longDescription": "Sizes approved work before planning, falls back to the current model when Sol is unavailable, keeps one Program Goal across child milestones, verifies native spawn arguments and actual per-turn models, records runtime provenance and evidence invalidation, runs all browser journeys through Ego Lite, and requires an independent Terra final acceptance plus a completion-telemetry-backed raw-evidence gate.",
+    "longDescription": "Sizes approved work before planning, falls back to the current model when Sol is unavailable, keeps one Program Goal across child milestones, verifies native spawn arguments and actual per-turn models, records runtime provenance and evidence invalidation, runs all browser journeys through Ego Lite, requires an independent Terra final acceptance plus a completion-telemetry-backed raw-evidence gate, and produces an auditable post-completion Goal retrospective.",
     "developerName": "jialezhang",
     "category": "Productivity",
     "capabilities": [],

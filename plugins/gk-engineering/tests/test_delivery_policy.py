@@ -549,5 +549,36 @@ class IntegrationPolicyTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
 
 
+class GoalRetrospectivePolicyTests(unittest.TestCase):
+    def test_goal_retrospective_skill_and_resources_exist(self) -> None:
+        retrospective = SKILL_ROOT / "goal-retrospective"
+        self.assertTrue((retrospective / "SKILL.md").is_file())
+        self.assertTrue((retrospective / "agents" / "openai.yaml").is_file())
+        self.assertTrue((retrospective / "references" / "report-template.md").is_file())
+
+    def test_controller_runs_retrospective_after_completion_receipt(self) -> None:
+        controller = (SKILL_ROOT / "product-to-delivery" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        delivery = (SKILL_ROOT / "goal-driven-delivery" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        completion_index = controller.index("marked complete")
+        retrospective_index = controller.index("Invoke `$goal-retrospective`")
+        self.assertLess(completion_index, retrospective_index)
+        self.assertIn("completion receipt", controller)
+        self.assertIn("never as acceptance evidence", controller)
+        self.assertIn("invoke `$goal-retrospective`", delivery)
+        self.assertIn("post-completion audit", delivery)
+
+    def test_lifecycle_keeps_retrospective_outside_terminal_state(self) -> None:
+        lifecycle = (
+            SKILL_ROOT / "product-to-delivery" / "references" / "lifecycle-contract.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("`COMPLETE` remains the terminal Program state", lifecycle)
+        self.assertIn("GOAL_RETROSPECTIVE_RECORDED", lifecycle)
+        self.assertIn("RETROSPECTIVE_PENDING", lifecycle)
+
+
 if __name__ == "__main__":
     unittest.main()

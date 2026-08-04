@@ -1,0 +1,4 @@
+interface:
+  display_name: "Goal 复盘"
+  short_description: "基于权威 Goal 证据生成可审计且可执行的目标复盘"
+  default_prompt: "使用 $goal-retrospective 复盘当前 Goal，核对目标、交付、成本、作废证据、验收结论与下一轮行动。"

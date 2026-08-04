@@ -33,6 +33,8 @@ Read these references completely before routing a stage:
 14. Invoke `$review-delivery-gate` for governed evidence gates, final acceptance, and plan conflicts using the model-routing contract.
 15. If a PRD or plan revision invalidates approval, the current main agent returns to and completes the owning stage rather than patching around it or delegating the revision.
 16. Before governed Program completion, run `scripts/validate_completion_gate.py` from the plugin root against the exact routing log, Goal delivery state, candidate evidence, Program state, and optional integration manifest. Do not call the runtime completion tool unless this raw-evidence composite gate passes on the same candidate.
+17. After the runtime Program Goal is marked complete, preserve the completion receipt with its Goal/thread identity, final status, `tokensUsed`, `timeUsedSeconds`, and timestamps. Invoke `$goal-retrospective` with that receipt plus the approved artifacts, delivery state, candidate evidence, Git/build/release identity, routing log, telemetry, and final acceptance evidence.
+18. Treat the retrospective as a required post-completion audit, never as acceptance evidence or a substitute for the completion gate. For a multi-Goal Program, generate one Program-level retrospective that accounts for every child Goal and invalid run. If evidence is unavailable, record it as unsampled or unverified; do not invent values or reverse an already valid completion. Report a failed document write as `RETROSPECTIVE_PENDING` with the exact recovery action.
 
 ## Main-agent ownership
 
