@@ -25,12 +25,12 @@ Require `prd_status: APPROVED` and a validated `scope-assessment.yaml` whose spl
 ### Phase 1: Direction readiness
 
 1. Read the PRD, constitution, repository rules, current code, tests, architecture decisions, incidents, and relevant official dependency documentation.
-2. Reconcile the scope assessment against repository evidence. Do not silently lower P80 or remove a split recommendation to simplify planning.
+2. Reconcile the scope assessment against repository evidence. Preserve every prior estimate revision and explain changes. Do not silently lower P80 or remove a split recommendation; do lower or raise the new estimate when measured evidence, corrected path math, readiness, or risk-correlation analysis requires it.
 3. Freeze exact target identity and current responsibility owners, including the authoritative owner of every long-running operation and user-visible status.
 4. Classify every requested change as `local fix`, `compatible extension`, or `incompatible constraint` using direct evidence.
 5. Challenge rewrites, new runtimes, new persistence, and new domain objects. Require an explicit incompatibility or approved organizational constraint.
 6. For asynchronous or event-driven journeys, trace interaction, command, business-work, persistence, projection, and reconnect lifecycles separately. Never infer that an interaction or transport terminal state ends the underlying business work.
-7. Convert discoverable uncertainty into `VERIFY_FIRST` tasks. Return `READINESS_BLOCKED` only when progress requires missing authority, unavailable evidence, or a product decision.
+7. Convert discoverable uncertainty into `VERIFY_FIRST` tasks. For partial or unknown readiness, make `G-00` select the conditional branch and re-estimate remaining cumulative workload and critical-path wall-clock time. Return `READINESS_BLOCKED` only when progress requires missing authority, unavailable evidence, or a product decision.
 
 ### Phase 2: Architecture baseline
 
@@ -44,16 +44,16 @@ Require `prd_status: APPROVED` and a validated `scope-assessment.yaml` whose spl
 ### Phase 2A: Goal packaging and environments
 
 1. For `single_goal`, create one Goal plan and record that the user explicitly selected or timed out to `timeout_default_single` when P80 exceeded 8 hours.
-2. For `split`, create one program baseline plus 2–3 Goal plans. Each Goal needs an independently reviewable outcome, P50/P80 range, bounded write scope, visible session, worktree, branch, development port/browser context, checkpoint, and exact-target handoff.
+2. For `split`, create one program baseline plus 2–3 Goal plans. Each Goal needs an independently reviewable outcome, active-workload and wall-clock P50/P80 ranges, bounded write scope, visible session, worktree, branch, development port/browser context, checkpoint, and exact-target handoff.
 3. Add cross-Goal dependency and write-conflict graphs. Parallelize only independent waves; maximum parallel Goal sessions is 3.
 4. Assign one Terra integration owner and a clean integration worktree. Do not make every Goal its own program controller.
-5. Define the cumulative Agent budget: target 8, soft limit 12, hard limit 20 across the whole program.
+5. Define the cumulative Agent budget: target 8, soft limit 12, hard limit 20 across the whole program. Agent count is a concurrency constraint, not a multiplier for wall-clock duration.
 
 ### Phase 3: Complete task decomposition
 
 1. Map every approved requirement and acceptance journey to task and evidence IDs before drafting prose tasks.
 2. Create a dependency-ordered DAG using [assets/tasks-template.md](assets/tasks-template.md). Plan the entire approved scope, not only the first milestone.
-3. Define Goal, role, required skills, bounded write scope, consumed contracts, parallel safety, verification, rollback, checkpoint, evidence destination, and escalation triggers for every task.
+3. Define Goal, role, required skills, bounded write scope, consumed contracts, parallel safety, active-workload and wall-clock ranges, estimate evidence, conditional/risk group, verification, rollback, checkpoint, evidence destination, and escalation triggers for every task.
 4. Put high-risk assumptions and the first 阶段真实用户旅程 before broad infrastructure or speculative abstraction.
 5. Give every task a risk-driven `test_level` (`fast`, `change`, or `full`), impact surface, invalidation keys, external-effect policy/IDs, and explicit full-run reason when applicable.
 5. Keep exact files/APIs for distant work non-binding unless already verified.

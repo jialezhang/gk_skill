@@ -1,7 +1,7 @@
 {
   "name": "gk-engineering",
-  "version": "0.2.2+codex.20260805065006",
-  "description": "Project-agnostic, scope-sized delivery with declarative target and safety profiles, audited model routing, evidence revalidation, fail-closed completion receipts, and Goal retrospectives.",
+  "version": "0.2.3+codex.20260805144718",
+  "description": "Project-agnostic delivery with evidence-calibrated workload and critical-path estimates, declarative target and safety profiles, audited model routing, fail-closed completion receipts, and Goal retrospectives.",
   "author": {
     "name": "jialezhang"
   },
@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "GK Engineering",
     "shortDescription": "Profile-driven delivery with fail-closed evidence gates.",
-    "longDescription": "Sizes approved work before planning, keeps project-specific targets, protected resources, external effects, acceptance journeys, verification commands, and rollback actions in a declarative Profile, audits model routing and runtime provenance, supports explicit evidence revalidation, issues completion receipts only after immutable-input validation, and produces an auditable post-completion Goal retrospective.",
+    "longDescription": "Sizes approved work with separate cumulative Agent workload and wall-clock critical paths, evidence-backed readiness branches, G-00 re-estimation, and correlated-risk deduplication; keeps project-specific targets and safety rules in a declarative Profile; audits runtime provenance; validates immutable completion evidence; and produces an auditable Goal retrospective.",
     "developerName": "jialezhang",
     "category": "Productivity",
     "capabilities": [],

@@ -21,6 +21,8 @@ plan_version: 0.1.0
 - **Required skills:**
 - **Write scope:**
 - **Parallel safety:**
+- **Estimate:** active workload P50/P80; wall-clock P50/P80; measurement/actual evidence
+- **Estimate condition:** base | conditional trigger; risk correlation group; excluded duplicate allowance
 - **Worktree/branch and port/browser context:**
 - **Browser acceptance runner (when applicable):** Ego Lite `ego-browser` exclusively; task-space, exact URL, evidence paths, and `completeTaskSpace` cleanup
 - **Outcome:**
@@ -54,3 +56,4 @@ plan_version: 0.1.0
 - Pass condition:
 - Failure routing:
 - Downstream tasks blocked on failure:
+- Remaining-work re-estimate (required for G-00): selected branch, revised workload/wall-clock P50/P80, evidence, invalidation keys, split-threshold impact, and revision destination

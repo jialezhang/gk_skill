@@ -28,6 +28,15 @@
 - The current main agent performs routine coverage review and records the result in the planning handoff.
 - Plan-level contradictions return to the current main agent's planning pass without spawning a reviewer agent. Prefer Sol; if unavailable, continue on the current model under `sol_route_fallback`.
 
+### Estimate integrity
+
+- Program P50/P80/P90 are wall-clock critical-path percentiles; cumulative Agent workload and expected wait are separate.
+- Repository measurements and comparable actuals take precedence over generic human/manual estimates.
+- Materialized readiness is not charged again; known missing readiness is base work; partial or unknown readiness has conditional branches and a G-00 re-estimate.
+- Mutually exclusive branches are not summed, and common-cause risks have one correlation group and one allowance.
+- Program P80 is not obtained by summing every task P80, every Goal P80, or overlapping retry/integration/contingency buffers.
+- Every estimate revision preserves the prior baseline, evidence, reason, and split-threshold impact.
+
 ### Verification integrity
 
 - Task checks, boundary tests, real-target cases, and gates are distinct.

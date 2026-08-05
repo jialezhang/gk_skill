@@ -137,6 +137,7 @@ def main() -> int:
             sys.executable,
             str(skill_root / "assess-goal-scope" / "scripts" / "validate_scope_assessment.py"),
             str(skill_root / "assess-goal-scope" / "assets" / "scope-assessment-template.yaml"),
+            "--allow-placeholders",
         ],
         [
             sys.executable,
