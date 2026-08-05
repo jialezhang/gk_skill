@@ -61,7 +61,7 @@ current_milestone: M1
 | Stores |  |
 | Flags/build |  |
 | User/owner |  |
-| Providers |  |
+| External effects |  |
 
 ## Current-State Evidence
 
@@ -152,7 +152,7 @@ current_milestone: M1
 - `test:change`:
 - `test:full` trigger and candidate rule:
 - Acceptance claims versus execution scenarios:
-- Provider modes and cost limits:
+- External-effect policies, authorization, and limits:
 - Evidence reuse/invalidation keys:
 - Cartesian matrix policy:
 - Lifecycle interruption and convergence checks when applicable:

@@ -9,7 +9,7 @@ Do not use Playwright, Chrome control, generic computer-use, built-in browser to
 ## Required execution shape
 
 1. Create or reuse one isolated Ego Lite task space for the Goal with `useOrCreateTaskSpace`.
-2. Pin the candidate commit/build, exact URL, user/owner, flags, data, Provider mode, and expected journey before interaction.
+2. Pin the candidate commit/build, exact URL, user/owner, flags, protected-resource identity, external-effect policy, and expected journey before interaction.
 3. Operate the page with `ego-browser nodejs` helpers. Prefer `snapshotText()` and stable locators for semantic pages; use `captureScreenshot()` plus coordinate/keyboard actions for canvas or virtualized surfaces.
 4. After every material action, re-observe page state with `snapshotText()`, `pageInfo()`, a screenshot, or an authoritative readback. Do not infer success from a click completing.
 5. Record task-space ID, exact URL, action sequence, before/after observations, screenshot or raw-output paths, visible outcome, persisted outcome when applicable, runtime provenance, and failure details in the candidate evidence index.

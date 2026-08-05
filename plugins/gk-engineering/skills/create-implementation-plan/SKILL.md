@@ -55,7 +55,7 @@ Require `prd_status: APPROVED` and a validated `scope-assessment.yaml` whose spl
 2. Create a dependency-ordered DAG using [assets/tasks-template.md](assets/tasks-template.md). Plan the entire approved scope, not only the first milestone.
 3. Define Goal, role, required skills, bounded write scope, consumed contracts, parallel safety, verification, rollback, checkpoint, evidence destination, and escalation triggers for every task.
 4. Put high-risk assumptions and the first 阶段真实用户旅程 before broad infrastructure or speculative abstraction.
-5. Give every task a risk-driven `test_level` (`fast`, `change`, or `full`), impact surface, invalidation keys, Provider mode, and explicit full-run reason when applicable.
+5. Give every task a risk-driven `test_level` (`fast`, `change`, or `full`), impact surface, invalidation keys, external-effect policy/IDs, and explicit full-run reason when applicable.
 5. Keep exact files/APIs for distant work non-binding unless already verified.
 
 ### Phase 4: Verification design
@@ -64,7 +64,7 @@ Require `prd_status: APPROVED` and a validated `scope-assessment.yaml` whose spl
 2. Separate acceptance claims (`AC-*`) from execution scenarios (`SC-*`). Let one scenario prove multiple claims when it uses the same path.
 3. For every applicable long-running journey, require exact-target cases for normal completion, reconnect during work, dropped/delayed/duplicate terminal events, failure/cancellation, retry supersession, cross-surface agreement, and bounded convergence from the authoritative snapshot. Browser cases must follow the Ego Lite `ego-browser` contract.
 4. Define `fast`, `change`, and `full` suites, with full regression/build reserved for a frozen candidate or a documented risk trigger.
-5. Define Provider modes and cost limits. Do not expand an unjustified Cartesian matrix; require explicit interaction-risk evidence and execution budget when one is necessary.
+5. Define project-profile external-effect policies, authorization and limits. Do not expand an unjustified Cartesian matrix; require explicit interaction-risk evidence and execution budget when one is necessary.
 6. Define candidate identity, evidence reuse/invalidation rules, gate prerequisites, forbidden substitutions, stop action, and recovery owner.
 7. Distinguish `Implemented`, `Enabled`, `Executed`, `Verified`, and `Complete`.
 

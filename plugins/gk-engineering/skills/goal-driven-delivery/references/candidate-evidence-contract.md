@@ -22,12 +22,12 @@ python3 scripts/validate_candidate_evidence.py <candidate-evidence.json>
 
 ## 基线和影响分析
 
-首次编辑前运行足以识别已有失败的最小基线，并记录 commit、build、入口、Flags、Provider 配置和数据库/fixture 指纹。每次改动后更新影响图，不依据“改了几个文件”猜测试范围。
+首次编辑前运行足以识别已有失败的最小基线，并记录 commit、build、入口、Flags、外部副作用策略和受保护资源/fixture 指纹。每次改动后更新影响图，不依据“改了几个文件”猜测试范围。
 
 影响图至少回答：
 
 - 哪些产品声明和执行场景可能失效；
-- 是否改变共享运行时、状态生命周期、Provider 边界或持久化；
+- 是否改变共享运行时、状态生命周期、外部副作用边界或持久化；
 - 当前应运行 `fast`、`change` 还是 `full`；
 - 既有证据的哪些失效键发生变化。
 
@@ -38,7 +38,7 @@ python3 scripts/validate_candidate_evidence.py <candidate-evidence.json>
 - `candidate_commit`、build 和 exact target 一致；
 - 所有声明的失效键未变化；
 - 原始日志、截图或报告仍可读取；
-- Provider 模式满足该声明；
+- 外部副作用策略及授权满足该声明；
 - 运行模型符合角色合同。
 - 浏览器证据明确记录 Ego Lite `ego-browser` task-space、精确 URL、交互和关闭动作；其他浏览器入口只能作为诊断证据。
 
@@ -60,7 +60,7 @@ python3 scripts/validate_candidate_evidence.py <candidate-evidence.json>
 
 `evidence_records` 的状态只允许为：`draft`、`candidate`、`accepted`、`invalidated`、`superseded`。
 
-- 只有 `accepted` 且同候选版本的记录可支撑验收声明；
+- 只有 `accepted` 且对当前候选有效的记录可支撑验收声明；同候选可直接绑定，跨候选必须包含 `revalidation`，记录目标候选、检查过的失效键、时间和原始证据；
 - `invalidated` 必须记录原因和触发它的 artifact、环境或决策；
 - `superseded` 必须指向替代证据；
 - 代码、配置、消耗合同、运行来源或目标环境改变时，控制器必须重新判断既有证据，不能沿用旧结论；
@@ -68,7 +68,7 @@ python3 scripts/validate_candidate_evidence.py <candidate-evidence.json>
 
 ## 候选冻结与最终验收
 
-只有在计划内实现完成、阶段真实用户旅程通过且无未解决失效项时，才能冻结候选。完整回归和构建绑定该 commit；候选有代码或配置变更后，必须重新判断影响，不能沿用旧候选的完成结论。
+只有在计划内实现完成、阶段真实用户旅程通过、Project Profile 中所有外部副作用已解析且无未解决失效项时，才能写入 `candidate_freeze.status: frozen`。冻结同时记录 `project_profile_sha256`；完整回归和构建绑定该 commit。候选或 Profile 变化后，冻结自动失效，必须重新判断影响，不能沿用旧候选的完成结论。
 
 独立 Terra 最终验收消费原始证据并运行仍需人类交互判断的关键场景。其线程不得属于 `implementation_thread_ids`。最终 `TARGET_VERIFIED` 需要：
 

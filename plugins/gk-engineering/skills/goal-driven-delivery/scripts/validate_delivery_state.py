@@ -8,6 +8,15 @@ import re
 import sys
 from pathlib import Path
 
+PLUGIN_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(PLUGIN_ROOT / "scripts"))
+
+from delivery_contract import (  # noqa: E402
+    DELIVERY_STATUSES,
+    DELIVERY_VERIFIED_STATUSES,
+    version_at_least,
+)
+
 
 REQUIRED_TOP_LEVEL = {
     "schema_version",
@@ -41,19 +50,6 @@ REQUIRED_TOP_LEVEL = {
     "updated_at",
 }
 
-ALLOWED_STATUS = {
-    "DELIVERY_ACTIVE",
-    "GATE_REVIEW",
-    "PLAN_CONFLICT",
-    "PRODUCT_DECISION_REQUIRED",
-    "VERIFICATION_BLOCKED",
-    "TARGET_VERIFIED",
-    "GOAL_TARGET_VERIFIED",
-    "COMPLETE",
-    "BLOCKED",
-}
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("state", type=Path)
@@ -67,12 +63,17 @@ def main() -> int:
     text = args.state.read_text(encoding="utf-8")
     errors: list[str] = []
     top_level = set(re.findall(r"^([a-zA-Z0-9_]+):", text, re.MULTILINE))
-    for key in sorted(REQUIRED_TOP_LEVEL - top_level):
+    version_match = re.search(r'^schema_version:\s*["\']?([^"\'\n]+)', text, re.MULTILINE)
+    schema_version = version_match.group(1).strip() if version_match else None
+    required_top_level = set(REQUIRED_TOP_LEVEL)
+    if version_at_least(schema_version, (1, 3)):
+        required_top_level.update({"project_profile_path", "completion_receipt"})
+    for key in sorted(required_top_level - top_level):
         errors.append(f"missing top-level key: {key}")
 
     status_match = re.search(r"^status:\s*([A-Z_]+)\s*$", text, re.MULTILINE)
     status = status_match.group(1) if status_match else None
-    if status not in ALLOWED_STATUS:
+    if status not in DELIVERY_STATUSES:
         errors.append(f"invalid delivery status: {status!r}")
 
     if not args.allow_empty:
@@ -107,8 +108,15 @@ def main() -> int:
     if len(attempt_ids) != len(set(attempt_ids)):
         errors.append("duplicate attempt_id values")
 
-    if status in {"TARGET_VERIFIED", "GOAL_TARGET_VERIFIED", "COMPLETE"}:
-        if re.search(r"^\s+status:\s*(?:pending|ready|assigned|in_progress|needs_rework|plan_conflict|blocked)\s*$", text, re.MULTILINE):
+    if status in DELIVERY_VERIFIED_STATUSES:
+        nonterminal_scan = text
+        if status in {"TARGET_VERIFIED", "GOAL_TARGET_VERIFIED"}:
+            nonterminal_scan = re.sub(
+                r"(?ms)^completion_receipt:\s*\n.*?(?=^[a-zA-Z0-9_]+:|\Z)",
+                "",
+                nonterminal_scan,
+            )
+        if re.search(r"^\s+status:\s*(?:pending|ready|assigned|in_progress|needs_rework|plan_conflict|blocked)\s*$", nonterminal_scan, re.MULTILINE):
             errors.append("terminal delivery status contains nonterminal task/gate state")
         for key in ("model_canary_status", "model_handshake_status"):
             match = re.search(rf"^{key}:\s*([a-z_]+)\s*$", text, re.MULTILINE)
@@ -174,6 +182,26 @@ def main() -> int:
             )
             if not match or not match.group(1).strip():
                 errors.append(f"terminal Goal requires completion_telemetry.{key}")
+        if version_at_least(schema_version, (1, 3)):
+            profile = re.search(
+                r'^project_profile_path:\s*["\']?([^"\'\n]*)', text, re.MULTILINE
+            )
+            if not profile or not profile.group(1).strip():
+                errors.append("verified Goal requires project_profile_path")
+        if status == "COMPLETE" and version_at_least(schema_version, (1, 3)):
+            receipt_block = re.search(
+                r"(?ms)^completion_receipt:\s*\n(.*?)(?=^[a-zA-Z0-9_]+:|\Z)",
+                text,
+            )
+            receipt = receipt_block.group(1) if receipt_block else ""
+            if not re.search(r"^\s{2}status:\s*ready\s*$", receipt, re.MULTILINE):
+                errors.append("COMPLETE_REQUIRES_READY_COMPLETION_RECEIPT")
+            for key in ("path", "sha256"):
+                match = re.search(
+                    rf'^\s{{2}}{key}:\s*["\']?([^"\'\n]*)', receipt, re.MULTILINE
+                )
+                if not match or not match.group(1).strip():
+                    errors.append(f"complete Goal requires completion_receipt.{key}")
 
     progress_match = re.search(
         r"(?ms)^progress:\s*\n(.*?)(?=^[a-zA-Z0-9_]+:|\Z)",
@@ -197,7 +225,7 @@ def main() -> int:
         if int(completed.group(1)) > int(total.group(1)):
             errors.append(f"invalid progress denominator: {lane}")
         if (
-            status in {"TARGET_VERIFIED", "GOAL_TARGET_VERIFIED", "COMPLETE"}
+            status in DELIVERY_VERIFIED_STATUSES
             and completed.group(1) != total.group(1)
         ):
             errors.append(f"terminal Goal has incomplete progress: {lane}")

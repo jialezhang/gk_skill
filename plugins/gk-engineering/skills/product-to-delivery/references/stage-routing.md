@@ -32,7 +32,7 @@
 | Goal checkpoint complete | commit, push, and progress report |
 | All Goals are `GOAL_TARGET_VERIFIED` | `integrate-goals` in a clean integration worktree |
 | Integrated target appears done | independent Terra or audited Terra-fallback exact-target acceptance; Sol only on allowed escalation |
-| Same-candidate completion gate passed | complete the runtime Program Goal and preserve the completion receipt |
+| Same-candidate completion receipt issued and revalidated | persist its digest, transition states to `COMPLETE`, then complete the runtime Program Goal |
 | Program Goal is `COMPLETE`, receipt captured, retrospective missing | invoke `goal-retrospective` once for the Program and write the auditable retrospective |
 | Retrospective write failed after valid completion | report `RETROSPECTIVE_PENDING` with the exact evidence gap and recovery action; do not rewrite Goal status |
 

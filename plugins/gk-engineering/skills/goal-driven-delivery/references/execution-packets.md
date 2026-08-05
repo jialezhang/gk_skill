@@ -17,7 +17,7 @@ Every executor receives:
 11. explicit requested model, allowed reason, and observed-model recording destination;
 12. worktree, branch, port/browser context, checkpoint, and cumulative Agent budget allocation.
 13. no-write handshake turn ID and required task-class/model route;
-14. baseline evidence, current impact map, `test_level`, Provider mode/cost limit, invalidation keys, and candidate identity;
+14. baseline evidence, current impact map, `test_level`, project-profile external-effect policy/limits, invalidation keys, and candidate identity;
 15. acceptance claims proved by the assigned execution scenario and its evidence destination.
 16. for delegated implementation: the controller spawn-call identity and child runtime turn-model
     evidence. Include route-guard nonce and permission fields only when that optional hook surface

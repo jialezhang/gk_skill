@@ -9,6 +9,11 @@ import sys
 from collections import defaultdict, deque
 from pathlib import Path
 
+PLUGIN_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(PLUGIN_ROOT / "scripts"))
+
+from delivery_contract import EXTERNAL_EFFECT_POLICIES  # noqa: E402
+
 
 PLAN_HEADINGS = {
     "Product Outcome and Approved Scope",
@@ -190,28 +195,22 @@ def main() -> int:
         errors.append("task dependency graph contains a cycle")
     for task_id, body in task_blocks(tasks):
         test_level = field(body, "test_level")
-        provider_mode = field(body, "Provider mode")
+        effect_policy = field(body, "External effect policy")
         invalidation_keys = field(body, "evidence invalidation keys")
         if test_level not in {"fast", "change", "full"}:
             errors.append(f"{task_id}: invalid or missing test_level")
-        if provider_mode not in {
-            "mock",
-            "sandbox",
-            "real_free",
-            "real_expensive",
-            "not_applicable",
-        }:
-            errors.append(f"{task_id}: invalid or missing Provider mode")
+        if effect_policy not in EXTERNAL_EFFECT_POLICIES:
+            errors.append(f"{task_id}: invalid or missing External effect policy")
         if not invalidation_keys:
             errors.append(f"{task_id}: evidence invalidation keys are required")
         if test_level == "full":
             reason = field(body, "full-run reason")
             if not reason or reason.lower() in {"not_applicable", "none", "n/a"}:
                 errors.append(f"{task_id}: full test level requires a full-run reason")
-        if provider_mode == "real_expensive":
-            budget = field(body, "Provider budget/call limit")
+        if effect_policy == "authorized":
+            budget = field(body, "External effect authorization/budget")
             if not budget or budget.lower() in {"not_applicable", "none", "n/a"}:
-                errors.append(f"{task_id}: real_expensive Provider requires budget/call limit")
+                errors.append(f"{task_id}: authorized external effect requires authorization/budget")
 
     gates = set(re.findall(r"^###\s+\[(G-\d+)\]", tasks, re.MULTILINE))
     if not gates:
@@ -231,19 +230,13 @@ def main() -> int:
         for claim in sorted(referenced_claims - acceptance_cases):
             errors.append(f"{scenario_id}: references unknown acceptance claim {claim}")
         covered_claims.update(referenced_claims)
-        provider_mode = field(body, "Provider mode")
-        if provider_mode not in {
-            "mock",
-            "sandbox",
-            "real_free",
-            "real_expensive",
-            "not_applicable",
-        }:
-            errors.append(f"{scenario_id}: invalid or missing Provider mode")
-        if provider_mode == "real_expensive":
-            budget = field(body, "Provider budget/call limit")
+        effect_policy = field(body, "External effect policy")
+        if effect_policy not in EXTERNAL_EFFECT_POLICIES:
+            errors.append(f"{scenario_id}: invalid or missing External effect policy")
+        if effect_policy == "authorized":
+            budget = field(body, "External effect authorization/budget")
             if not budget or budget.lower() in {"not_applicable", "none", "n/a"}:
-                errors.append(f"{scenario_id}: real_expensive Provider requires budget/call limit")
+                errors.append(f"{scenario_id}: authorized external effect requires authorization/budget")
         matrix_type = field(body, "Matrix type")
         if matrix_type not in {"representative", "pairwise", "cartesian"}:
             errors.append(f"{scenario_id}: invalid or missing Matrix type")

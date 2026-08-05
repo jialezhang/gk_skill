@@ -35,8 +35,8 @@ Read these references completely before routing a stage:
 13. When multiple Goals finish, invoke `$integrate-goals` to merge them in an integration worktree and verify a clean integration commit.
 14. Invoke `$review-delivery-gate` for governed evidence gates, final acceptance, and plan conflicts using the model-routing contract.
 15. If a PRD or plan revision invalidates approval, the current main agent returns to and completes the owning stage rather than patching around it or delegating the revision.
-16. Before governed Program completion, run `scripts/validate_completion_gate.py` from the plugin root against the exact routing log, Goal delivery state, candidate evidence, Program state, and optional integration manifest. Do not call the runtime completion tool unless this raw-evidence composite gate passes on the same candidate.
-17. After the runtime Program Goal is marked complete, preserve the completion receipt with its Goal/thread identity, final status, `tokensUsed`, `timeUsedSeconds`, and timestamps. Invoke `$goal-retrospective` with that receipt plus the approved artifacts, delivery state, candidate evidence, Git/build/release identity, routing log, telemetry, and final acceptance evidence.
+16. Before governed Program completion, keep the Program in `PROGRAM_TARGET_VERIFIED` and run `scripts/validate_completion_gate.py --receipt <completion-receipt.json>` from the plugin root against the project Profile, exact routing log, Goal delivery state, candidate evidence, Program state, and optional integration manifest. Revalidate the receipt, record its path/digest in both states, and only then transition to `COMPLETE`. Do not call the runtime completion tool unless this fail-closed transaction passes on the same candidate.
+17. After the runtime Program Goal is marked complete, preserve the completion receipt with its immutable input digests plus the runtime Goal/thread identity, final status, `tokensUsed`, `timeUsedSeconds`, and timestamps. Invoke `$goal-retrospective` with that receipt plus the approved artifacts, delivery state, candidate evidence, Git/build/release identity, routing log, telemetry, and final acceptance evidence.
 18. Treat the retrospective as a required post-completion audit, never as acceptance evidence or a substitute for the completion gate. For a multi-Goal Program, generate one Program-level retrospective that accounts for every child Goal and invalid run. If evidence is unavailable, record it as unsampled or unverified; do not invent values or reverse an already valid completion. Report a failed document write as `RETROSPECTIVE_PENDING` with the exact recovery action.
 
 ## Main-agent ownership
@@ -67,7 +67,7 @@ Use explicit model selection according to the routing surface:
 - delivery control, implementation, debugging, local rework, and integration: prefer
   `gpt-5.6-terra`; if three sequential delegated switch attempts fail, the current main agent
   continues directly with its existing model and records all attempts in `terra_route_fallback`;
-- browser acceptance, 阶段真实用户旅程, runtime lifecycle acceptance, Provider-boundary acceptance,
+- browser acceptance, 阶段真实用户旅程, runtime lifecycle acceptance, external-effect-boundary acceptance,
   and final exact-target acceptance: prefer `gpt-5.6-terra`; after three failed raw route attempts,
   use audited `terra_route_fallback`, with final acceptance in a fresh read-only reviewer context;
   all browser operations and browser evidence must use Ego Lite `ego-browser`;

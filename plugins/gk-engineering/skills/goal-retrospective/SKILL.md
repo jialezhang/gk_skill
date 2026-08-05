@@ -29,7 +29,7 @@ description: 基于 Goal 系统记录、执行日志、计划、交付证据和 
 按以下优先级取证：
 
 1. Goal 系统状态与完成回执：objective、status、`tokensUsed`、`timeUsedSeconds`、时间戳。
-2. 精确目标的原始验收证据：测试输出、浏览器/API/数据库证据、Provider 记录、release/build identity。
+2. 精确目标的原始验收证据：测试输出、浏览器/API/受保护资源证据、外部副作用记录、release/build identity。
 3. 批准的 PRD、实施计划、任务清单、delivery state 与最终验收文档。
 4. Git commit、diff、分支、工作树与运行环境身份。
 5. rollout/token ledger、trace、session 或子 agent 记录。
@@ -106,7 +106,7 @@ description: 基于 Goal 系统记录、执行日志、计划、交付证据和 
 - 先写结论与证据，再写过程。
 - 明确标注事实、推断和建议；推断必须说明依据。
 - 对关键数字注明来源和口径。
-- 对全量测试、浏览器验收、Provider 调用和发布状态分别陈述，不能互相替代。
+- 对全量测试、浏览器验收、外部副作用和发布状态分别陈述，不能互相替代。
 - 不把诊断结果、legacy/fallback 路径、schema/stub 或局部 milestone 包装为完整交付。
 - 引用精确文件路径、commit、run/job/release ID；不复制敏感 payload、凭据或受保护数据。
 - 若复盘发现现有 Goal 状态与证据矛盾，报告不一致；除非用户另行要求，不修改 Goal 状态。

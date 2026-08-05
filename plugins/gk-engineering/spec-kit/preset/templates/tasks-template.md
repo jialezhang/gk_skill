@@ -31,8 +31,9 @@ plan_version: 0.1.0
   - risk and impact surface:
   - focused/change commands:
   - full-run reason: not_applicable | [why fast/change is insufficient]
-  - Provider mode: mock | sandbox | real_free | real_expensive | not_applicable
-  - Provider budget/call limit: not_applicable | [budget and maximum calls]
+  - External effect policy: forbidden | sandboxed | authorized | not_applicable
+  - External effect IDs: not_applicable | [IDs from project-profile.json]
+  - External effect authorization/budget: not_applicable | [authorization reference, budget, and limits]
   - evidence invalidation keys:
   - 阶段真实用户旅程/ exact-target handoff:
 - **Candidate touchpoints (non-binding)**:
