@@ -15,7 +15,7 @@ Require the approved artifact versions, affected task/gate IDs, repository diff,
 
 Luna is preferred for deterministic low-complexity checks; when unavailable, the current model owns
 them under `luna_route_fallback`. Terra is preferred for local code-quality review, browser and
-阶段真实用户旅程 execution, runtime/Provider judgment, repair advice, and final acceptance. After
+阶段真实用户旅程 execution, runtime/external-effect judgment, repair advice, and final acceptance. After
 three failed raw Terra route attempts, use `terra_route_fallback`; final acceptance still requires a
 fresh independent read-only context. Every browser operation is exclusive to Ego Lite
 `ego-browser`. Sol is preferred only for product, plan, architecture, or high-risk security

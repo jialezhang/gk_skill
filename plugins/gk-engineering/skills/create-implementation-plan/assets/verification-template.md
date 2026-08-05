@@ -15,7 +15,7 @@ plan_version: 0.1.0
 - Flags/configuration:
 - User/owner:
 - Data:
-- Providers:
+- External effects:
 
 ## Automated and Integration Matrix
 
@@ -40,7 +40,7 @@ plan_version: 0.1.0
 - Browser runner when applicable: Ego Lite `ego-browser` exclusively
 - Ego Lite task-space, URL, screenshots/snapshots, and `completeTaskSpace` cleanup evidence:
 - User/owner:
-- Provider/data:
+- External effects/data:
 - Actions:
 - Observable result:
 - Authoritative persisted result:
@@ -58,8 +58,9 @@ plan_version: 0.1.0
 - Proves: AC-001
 - Stage: [阶段真实用户旅程 | final]
 - Exact target:
-- Provider mode: mock | sandbox | real_free | real_expensive | not_applicable
-- Provider budget/call limit: not_applicable | [budget and maximum calls]
+- External effect policy: forbidden | sandboxed | authorized | not_applicable
+- External effect IDs: not_applicable | [IDs from project-profile.json]
+- External effect authorization/budget: not_applicable | [authorization reference, budget, and limits]
 - Actions:
 - Evidence paths:
 - Invalidation keys:

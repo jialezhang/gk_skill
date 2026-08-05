@@ -14,7 +14,7 @@ The program controller owns cross-Goal dependencies, cumulative Agent budget, an
 | Data/migration implementation | `data_executor` | prefer `gpt-5.6-terra`; audited current-model fallback after three raw failures |
 | Focused debugging | `debugger` | prefer `gpt-5.6-terra`; audited current-model fallback after three raw failures |
 | Deterministic test/build/checklist execution | `luna_verifier` | prefer `gpt-5.6-luna`; otherwise `luna_route_fallback` |
-| Browser, lifecycle, Provider, and stage journey acceptance | `terra_acceptance` using Ego Lite `ego-browser` for every browser operation | prefer `gpt-5.6-terra`; otherwise audited fallback after three raw failures |
+| Browser, lifecycle, external-effect, and stage journey acceptance | `terra_acceptance` using Ego Lite `ego-browser` for every browser operation | prefer `gpt-5.6-terra`; otherwise audited fallback after three raw failures |
 | Final exact-target acceptance | `terra_final_acceptance` | prefer `gpt-5.6-terra`; otherwise fresh independent audited fallback reviewer |
 | Plan/architecture/security escalation | current main agent | prefer `gpt-5.6-sol`; otherwise current model under `sol_route_fallback` |
 

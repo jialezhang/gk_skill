@@ -1,6 +1,7 @@
-schema_version: "1.2"
+schema_version: "1.3"
 delivery_id: ""
 status: DELIVERY_ACTIVE
+project_profile_path: "project-profile.json"
 controller:
   role: terra_delivery
   agent_id: ""
@@ -72,6 +73,10 @@ completion_telemetry:
   capture_event: before_terminal_transition
   source: ""
   unavailable_fields: []
+completion_receipt:
+  status: pending
+  path: ""
+  sha256: ""
 escalations: []
 decisions: []
 evidence: []

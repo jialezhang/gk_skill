@@ -36,7 +36,7 @@ PROGRAM_ACTIVE
 → COMPLETE
 ```
 
-`COMPLETE` remains the terminal Program state. After the runtime completion receipt is captured, run the post-completion audit outside the Program state machine:
+`COMPLETE` remains the terminal Program state; `PROGRAM_TARGET_VERIFIED` is its verified pre-terminal state. The completion gate atomically issues a receipt bound to the current input digests; after revalidation, both delivery states record that receipt and may transition to `COMPLETE`. After the runtime Goal completion record is captured, run the post-completion audit outside the Program state machine:
 
 ```text
 COMPLETE

@@ -591,6 +591,20 @@ updated_at: "2026-07-23T00:00:00Z"
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("PROGRAM_HAS_UNFINISHED_GOALS", result.stderr)
 
+    def test_current_program_schema_requires_ready_receipt_for_complete(self) -> None:
+        state = self.complete_state().replace('schema_version: "1.0"', 'schema_version: "1.2"')
+        state = state.replace(
+            'created_at: "2026-07-23T00:00:00Z"',
+            'completion_receipt:\n  status: pending\n  path: ""\n  sha256: ""\ncreated_at: "2026-07-23T00:00:00Z"',
+        )
+        result = self.validate(state)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("COMPLETE_REQUIRES_READY_COMPLETION_RECEIPT", result.stderr)
+
+        state = state.replace("status: pending\n  path: \"\"\n  sha256: \"\"", "status: ready\n  path: \"receipt.json\"\n  sha256: \"abc123\"")
+        result = self.validate(state)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
 
 class CandidateEvidenceTests(unittest.TestCase):
     def validate(self, manifest: dict[str, object]) -> subprocess.CompletedProcess[str]:
@@ -908,6 +922,7 @@ updated_at: "2026-07-23T00:00:00Z"
     def run_complete_gate(
         self,
         records: list[dict[str, object]],
+        issue_receipt: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -1021,7 +1036,7 @@ updated_at: "2026-07-23T00:00:00Z"
                 self.terminal_delivery_state(program, candidate, telemetry),
                 encoding="utf-8",
             )
-            result = run_script(
+            command = [
                 "scripts/validate_completion_gate.py",
                 "--routing-log",
                 str(routing),
@@ -1035,11 +1050,70 @@ updated_at: "2026-07-23T00:00:00Z"
                 str(sessions),
                 "--archived-root",
                 str(root / "archived"),
-            )
+            ]
+            receipt = root / "completion-receipt.json"
+            if issue_receipt:
+                command.extend(["--receipt", str(receipt)])
+            result = run_script(*command)
+            if issue_receipt and result.returncode == 0:
+                receipt_result = run_script(
+                    "scripts/validate_completion_receipt.py", str(receipt)
+                )
+                self.assertEqual(receipt_result.returncode, 0, receipt_result.stderr)
+                receipt_data = json.loads(receipt.read_text(encoding="utf-8"))
+                self.assertEqual(receipt_data["status"], "ready")
+                self.assertEqual(receipt_data["candidate_commit"], "abc123")
+                self.assertTrue(
+                    any(
+                        key.startswith("runtime_rollout_")
+                        for key in receipt_data["inputs"]
+                    ),
+                    "completion receipt must bind the raw rollout evidence",
+                )
             return result
 
     def test_complete_raw_evidence_gate_passes(self) -> None:
         result = self.run_complete_gate(self.complete_routing_records())
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_current_delivery_schema_allows_pending_receipt_before_completion(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.terminal_delivery_state(
+                root / "program.yaml", root / "candidate.json", root / "telemetry.json"
+            )
+            state = state.replace('schema_version: "1.2"', 'schema_version: "1.3"')
+            state = state.replace(
+                "status: GOAL_TARGET_VERIFIED",
+                'status: GOAL_TARGET_VERIFIED\nproject_profile_path: "project-profile.json"',
+            )
+            state = state.replace(
+                "escalations: []",
+                'completion_receipt:\n  status: pending\n  path: ""\n  sha256: ""\nescalations: []',
+            )
+            path = root / "delivery-state.yaml"
+            path.write_text(state, encoding="utf-8")
+            result = run_script(
+                "skills/goal-driven-delivery/scripts/validate_delivery_state.py",
+                str(path),
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+            path.write_text(
+                state.replace("status: GOAL_TARGET_VERIFIED", "status: COMPLETE"),
+                encoding="utf-8",
+            )
+            result = run_script(
+                "skills/goal-driven-delivery/scripts/validate_delivery_state.py",
+                str(path),
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("COMPLETE_REQUIRES_READY_COMPLETION_RECEIPT", result.stderr)
+
+    def test_complete_gate_issues_revalidatable_receipt(self) -> None:
+        result = self.run_complete_gate(
+            self.complete_routing_records(), issue_receipt=True
+        )
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_complete_gate_uses_raw_native_evidence_without_route_guard_nonce(self) -> None:

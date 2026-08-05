@@ -81,8 +81,13 @@ def main() -> int:
     required_files = [
         "hooks/hooks.json",
         "hooks/terra_route_guard.py",
+        "scripts/append_routing_event.py",
         "scripts/validate_completion_gate.py",
+        "scripts/validate_completion_receipt.py",
         "scripts/validate_completion_telemetry.py",
+        "scripts/validate_project_profile.py",
+        "scripts/delivery_contract.py",
+        "skills/goal-driven-delivery/assets/project-profile-template.json",
         "skills/goal-retrospective/agents/openai.yaml",
         "skills/goal-retrospective/references/report-template.md",
         "spec-kit/preset/preset.yml",
@@ -132,6 +137,7 @@ def main() -> int:
             sys.executable,
             str(skill_root / "assess-goal-scope" / "scripts" / "validate_scope_assessment.py"),
             str(skill_root / "assess-goal-scope" / "assets" / "scope-assessment-template.yaml"),
+            "--allow-placeholders",
         ],
         [
             sys.executable,
@@ -150,6 +156,12 @@ def main() -> int:
             str(fixture / "tasks.md"),
             "--verification",
             str(fixture / "verification.md"),
+        ],
+        [
+            sys.executable,
+            str(plugin_root / "scripts" / "validate_project_profile.py"),
+            str(skill_root / "goal-driven-delivery" / "assets" / "project-profile-template.json"),
+            "--allow-empty",
         ],
         [
             sys.executable,
@@ -177,6 +189,7 @@ def main() -> int:
         ],
         [sys.executable, str(plugin_root / "tests" / "test_delivery_policy.py")],
         [sys.executable, str(plugin_root / "tests" / "test_delivery_policy_v2.py")],
+        [sys.executable, str(plugin_root / "tests" / "test_generic_delivery_contract.py")],
     ]
     for command in checks:
         result = subprocess.run(command, text=True, capture_output=True)

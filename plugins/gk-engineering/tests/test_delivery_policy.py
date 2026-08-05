@@ -25,6 +25,85 @@ def run_script(relative: str, *args: str) -> subprocess.CompletedProcess[str]:
 
 
 class ScopeAssessmentPolicyTests(unittest.TestCase):
+    @staticmethod
+    def _schema_1_1(**overrides: str) -> str:
+        values = {
+            "p50_hours": "3",
+            "p80_hours": "4",
+            "critical_path_p50_hours": "3",
+            "critical_path_p80_hours": "4",
+            "cumulative_workload_p50_hours": "5",
+            "cumulative_workload_p80_hours": "7",
+            "readiness_status": "unknown",
+            "reestimate_required": "true",
+            "reestimate_gate": "G-00",
+            "conditional_estimates": """\
+  - id: readiness-remediation
+    trigger: G-00 proves readiness is incomplete
+    wall_clock_delta_p50_hours: 1
+    wall_clock_delta_p80_hours: 2
+    workload_delta_p50_hours: 1
+    workload_delta_p80_hours: 2
+    risk_correlation_group: readiness""",
+            "risk_correlation_groups": """\
+  - id: readiness
+    common_cause: residual setup state
+    charged_once: true""",
+            "estimate_invalidation_keys": "  - readiness_manifest_identity",
+        }
+        values.update(overrides)
+        return f"""\
+schema_version: "1.1"
+assessment_id: "scope-v1-1"
+estimate_basis: repository_measurements
+base_scenario: "existing automation and isolated verification"
+readiness_status: {values['readiness_status']}
+readiness_evidence: []
+measurement_evidence:
+  - command: python3 -m unittest
+    observed_duration_seconds: 12
+p50_hours: {values['p50_hours']}
+p80_hours: {values['p80_hours']}
+p90_hours: 6
+critical_path_p50_hours: {values['critical_path_p50_hours']}
+critical_path_p80_hours: {values['critical_path_p80_hours']}
+cumulative_workload_p50_hours: {values['cumulative_workload_p50_hours']}
+cumulative_workload_p80_hours: {values['cumulative_workload_p80_hours']}
+expected_wait_p50_hours: 0
+expected_wait_p80_hours: 0.5
+expected_files: 12
+domains: [runtime, tests]
+uncertainty: medium
+parallelizable: true
+suggested_goals: 2
+split_recommended: false
+split_strength: none
+split_decision: single_goal
+decision_source: not_required
+decision_timeout_seconds: 240
+work_packages: []
+dependency_graph: []
+conflict_graph: []
+conditional_estimates:
+{values['conditional_estimates']}
+risk_correlation_groups:
+{values['risk_correlation_groups']}
+reestimate_required: {values['reestimate_required']}
+reestimate_gate: {values['reestimate_gate']}
+estimate_invalidation_keys:
+{values['estimate_invalidation_keys']}
+created_at: "2026-08-05T00:00:00Z"
+"""
+
+    def _validate_assessment(self, assessment: str) -> subprocess.CompletedProcess[str]:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "scope-assessment.yaml"
+            path.write_text(assessment, encoding="utf-8")
+            return run_script(
+                "skills/assess-goal-scope/scripts/validate_scope_assessment.py",
+                str(path),
+            )
+
     def test_scope_assessment_skill_and_validator_exist(self) -> None:
         self.assertTrue((SKILL_ROOT / "assess-goal-scope" / "SKILL.md").is_file())
         self.assertTrue(
@@ -95,6 +174,43 @@ created_at: "2026-07-21T00:00:00Z"
                 str(path),
             )
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_schema_1_1_separates_workload_from_critical_path(self) -> None:
+        result = self._validate_assessment(self._schema_1_1())
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_schema_1_1_rejects_ambiguous_program_and_critical_path_p80(self) -> None:
+        result = self._validate_assessment(
+            self._schema_1_1(critical_path_p80_hours="5")
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("critical_path_p80_hours == p80_hours", result.stderr)
+
+    def test_schema_1_1_rejects_workload_below_wall_clock(self) -> None:
+        result = self._validate_assessment(
+            self._schema_1_1(cumulative_workload_p80_hours="3")
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("cannot be lower than wall-clock p80_hours", result.stderr)
+
+    def test_unknown_readiness_requires_conditional_g00_reestimate(self) -> None:
+        result = self._validate_assessment(
+            self._schema_1_1(
+                reestimate_required="false",
+                reestimate_gate="G-01",
+                conditional_estimates="[]",
+                risk_correlation_groups="[]",
+                estimate_invalidation_keys="[]",
+            )
+        )
+        self.assertNotEqual(result.returncode, 0)
+        for expected in (
+            "reestimate_required: true",
+            "reestimate_gate: G-00",
+            "requires conditional_estimates",
+            "requires estimate_invalidation_keys",
+        ):
+            self.assertIn(expected, result.stderr)
 
 
 class ModelRoutingPolicyTests(unittest.TestCase):
@@ -276,6 +392,30 @@ class ModelRoutingPolicyTests(unittest.TestCase):
 
 
 class DeliveryGovernanceTextTests(unittest.TestCase):
+    def test_estimation_contract_prevents_agentic_tail_double_counting(self) -> None:
+        sizing = (
+            SKILL_ROOT / "assess-goal-scope" / "references" / "sizing-contract.md"
+        ).read_text(encoding="utf-8")
+        planning = (SKILL_ROOT / "create-implementation-plan" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        plan_template = (
+            SKILL_ROOT
+            / "create-implementation-plan"
+            / "assets"
+            / "implementation-plan-template.md"
+        ).read_text(encoding="utf-8")
+        for required in (
+            "cumulative_workload_p80_hours",
+            "G-00",
+            "risk_correlation_group",
+            "Mutually exclusive branches",
+        ):
+            self.assertIn(required, sizing)
+        self.assertIn("re-estimate remaining", planning)
+        self.assertIn("Estimate Calibration Contract", plan_template)
+        self.assertIn("Excluded duplicate buffers", plan_template)
+
     def test_technical_change_routes_through_explicit_prd_decision(self) -> None:
         controller = (SKILL_ROOT / "product-to-delivery" / "SKILL.md").read_text(
             encoding="utf-8"

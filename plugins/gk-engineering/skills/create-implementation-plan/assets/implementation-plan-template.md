@@ -19,13 +19,34 @@ current_milestone: M1
 ## Scope Assessment and Goal Packaging
 
 - Scope assessment path/revision:
-- P50/P80/P90 wall-clock estimate:
+- Estimate revision/basis/base scenario:
+- Program P50/P80/P90 wall-clock critical path:
+- Program cumulative Agent workload P50/P80:
+- Expected external wait P50/P80 and critical-path inclusion:
+- Readiness status/evidence:
 - Split recommendation and strength:
 - Split decision/source:
 - Program baseline: single_goal | multi_goal
 
-| Goal | Independent outcome | P50/P80 | Dependencies | Write conflicts | Session | Worktree/branch | Port/browser context | Checkpoint |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Goal | Independent outcome | Active workload P50/P80 | Wall-clock P50/P80 | Dependencies | Write conflicts | Session | Worktree/branch | Port/browser context | Checkpoint |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+
+## Estimate Calibration Contract
+
+| Measurement/actual | Command or evidence | Sample identity/date | Observed duration | Used in estimate |
+| --- | --- | --- | --- | --- |
+
+| Conditional branch | Trigger evidence | Wall-clock delta P50/P80 | Workload delta P50/P80 | Risk correlation group | Included in base? |
+| --- | --- | --- | --- | --- | --- |
+
+| Risk correlation group | Common cause | Covered packages/branches | Single charged allowance | Excluded duplicate buffers |
+| --- | --- | --- | --- | --- |
+
+- G-00 re-estimation owner:
+- Estimate invalidation keys:
+- Remaining-work re-estimation command/evidence:
+- Revision log destination:
+- Split-threshold rule: if re-estimated wall-clock P80 changes Goal packaging, return the packaging choice to the user; otherwise revise the estimate without reopening product scope.
 
 ## Program Dependency and Conflict Graph
 
@@ -61,7 +82,7 @@ current_milestone: M1
 | Stores |  |
 | Flags/build |  |
 | User/owner |  |
-| Providers |  |
+| External effects |  |
 
 ## Current-State Evidence
 
@@ -152,7 +173,7 @@ current_milestone: M1
 - `test:change`:
 - `test:full` trigger and candidate rule:
 - Acceptance claims versus execution scenarios:
-- Provider modes and cost limits:
+- External-effect policies, authorization, and limits:
 - Evidence reuse/invalidation keys:
 - Cartesian matrix policy:
 - Lifecycle interruption and convergence checks when applicable:
@@ -179,6 +200,7 @@ current_milestone: M1
 - Plan-level contradiction:
 - Product-level conflict:
 - Attempt invalidation rule:
+- Estimate revision: preserve prior revision, resolve conditional branch at G-00, and re-estimate remaining rather than elapsed work.
 
 ## Remaining Risks
 
@@ -191,5 +213,7 @@ current_milestone: M1
 - [ ] Every P0/P1 requirement maps to tasks and evidence.
 - [ ] Every blocking journey has an exact-target case.
 - [ ] Dependencies, gates, rollback, and escalation are explicit.
+- [ ] Wall-clock, cumulative Agent workload, and expected wait use distinct, evidence-backed fields.
+- [ ] Readiness branches and correlated tail risks are not double counted; G-00 owns re-estimation when required.
 - [ ] Provisional details are not presented as verified facts.
 - [ ] Long-running journeys define authoritative state, subscription lifetime, reconciliation, convergence, and stale-action protection.

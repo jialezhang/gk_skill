@@ -4,15 +4,20 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
+import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PLUGIN_ROOT / "scripts"))
+
+from delivery_contract import file_digest  # noqa: E402
 
 
 def run_validator(relative: str, *args: str) -> list[str]:
@@ -62,6 +67,33 @@ def load_routing(path: Path, errors: list[str]) -> list[dict[str, object]]:
     return records
 
 
+def runtime_rollout_paths(
+    records: list[dict[str, object]], roots: list[Path]
+) -> list[Path]:
+    """Collect every raw rollout file consulted by routing validation."""
+    thread_ids: set[str] = set()
+    for record in records:
+        for key in ("thread_id", "spawn_controller_thread_id"):
+            value = record.get(key)
+            if isinstance(value, str) and value:
+                thread_ids.add(value)
+        attempts = record.get("fallback_attempts")
+        if isinstance(attempts, list):
+            for attempt in attempts:
+                if not isinstance(attempt, dict):
+                    continue
+                controller = attempt.get("spawn_controller_thread_id")
+                if isinstance(controller, str) and controller:
+                    thread_ids.add(controller)
+    matches: set[Path] = set()
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for thread_id in thread_ids:
+            matches.update(root.rglob(f"*{thread_id}*.jsonl"))
+    return sorted(matches)
+
+
 def yaml_scalar(path: Path, section: str, key: str) -> str | None:
     text = path.read_text(encoding="utf-8")
     match = re.search(
@@ -77,6 +109,15 @@ def yaml_scalar(path: Path, section: str, key: str) -> str | None:
     return scalar.group(1).strip() if scalar else None
 
 
+def yaml_top_scalar(path: Path, key: str) -> str | None:
+    match = re.search(
+        rf"^{re.escape(key)}:\s*[\"']?([^\"'\n]*)",
+        path.read_text(encoding="utf-8"),
+        re.MULTILINE,
+    )
+    return match.group(1).strip() if match else None
+
+
 def resolve_state_path(state: Path, value: str | None) -> Path | None:
     if not value:
         return None
@@ -84,8 +125,20 @@ def resolve_state_path(state: Path, value: str | None) -> Path | None:
     return path if path.is_absolute() else state.parent / path
 
 
-def digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+def write_atomic_json(path: Path, value: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        dir=path.parent,
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        delete=False,
+    ) as handle:
+        json.dump(value, handle, indent=2)
+        handle.write("\n")
+        temporary = Path(handle.name)
+    os.replace(temporary, path)
 
 
 def main() -> int:
@@ -94,6 +147,7 @@ def main() -> int:
     parser.add_argument("--delivery-state", type=Path, required=True)
     parser.add_argument("--candidate-evidence", type=Path, required=True)
     parser.add_argument("--program-state", type=Path, required=True)
+    parser.add_argument("--project-profile", type=Path)
     parser.add_argument("--integration-manifest", type=Path)
     parser.add_argument("--sessions-root", type=Path, default=Path.home() / ".codex" / "sessions")
     parser.add_argument(
@@ -102,7 +156,15 @@ def main() -> int:
         default=Path.home() / ".codex" / "archived_sessions",
     )
     parser.add_argument("--report", type=Path)
+    parser.add_argument(
+        "--receipt",
+        type=Path,
+        help="Atomically issue the completion receipt after every gate passes.",
+    )
     args = parser.parse_args()
+
+    if args.report is not None and args.receipt is not None:
+        parser.error("use only one of --report or --receipt")
 
     errors: list[str] = []
     required_paths = {
@@ -113,6 +175,12 @@ def main() -> int:
     }
     if args.integration_manifest is not None:
         required_paths["integration manifest"] = args.integration_manifest
+    profile_path = args.project_profile
+    if profile_path is None:
+        profile_path = resolve_state_path(
+            args.delivery_state,
+            yaml_top_scalar(args.delivery_state, "project_profile_path"),
+        )
     for label, path in required_paths.items():
         if not path.is_file():
             errors.append(f"{label} not found: {path}")
@@ -120,6 +188,11 @@ def main() -> int:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)
         return 1
+    if profile_path is not None:
+        if profile_path.is_file():
+            required_paths["project profile"] = profile_path
+        else:
+            errors.append(f"project profile not found: {profile_path}")
 
     errors.extend(
         run_validator(
@@ -135,6 +208,10 @@ def main() -> int:
             str(args.archived_root),
         )
     )
+    if profile_path is not None and profile_path.is_file():
+        errors.extend(
+            run_validator("scripts/validate_project_profile.py", str(profile_path))
+        )
     telemetry_path = resolve_state_path(
         args.delivery_state,
         yaml_scalar(args.delivery_state, "completion_telemetry", "snapshot_path"),
@@ -153,10 +230,13 @@ def main() -> int:
             str(args.delivery_state),
         )
     )
+    candidate_validator_args = [str(args.candidate_evidence)]
+    if profile_path is not None and profile_path.is_file():
+        candidate_validator_args.extend(["--project-profile", str(profile_path)])
     errors.extend(
         run_validator(
             "skills/goal-driven-delivery/scripts/validate_candidate_evidence.py",
-            str(args.candidate_evidence),
+            *candidate_validator_args,
         )
     )
     errors.extend(
@@ -243,14 +323,29 @@ def main() -> int:
         return 1
 
     inputs = dict(required_paths)
+    for index, path in enumerate(
+        runtime_rollout_paths(routing, [args.sessions_root, args.archived_root]), 1
+    ):
+        inputs[f"runtime rollout {index:03d}"] = path
     report = {
         "schema_version": "1.0",
-        "status": "passed",
+        "status": "ready",
         "candidate_commit": candidate_commit,
+        "issued_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "inputs": {
             label.replace(" ", "_"): {
                 "path": str(path.resolve()),
-                "sha256": digest(path),
+                "sha256": file_digest(
+                    path,
+                    "terminal_state"
+                    if label in {"delivery state", "program state"}
+                    else "raw",
+                ),
+                "digest_mode": (
+                    "terminal_state"
+                    if label in {"delivery state", "program state"}
+                    else "raw"
+                ),
             }
             for label, path in inputs.items()
         },
@@ -258,9 +353,9 @@ def main() -> int:
         "final_acceptance_thread_id": reviewer_thread,
         "final_acceptance_turn_id": reviewer_turn,
     }
-    if args.report is not None:
-        args.report.parent.mkdir(parents=True, exist_ok=True)
-        args.report.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    output_path = args.receipt or args.report
+    if output_path is not None:
+        write_atomic_json(output_path, report)
     print(json.dumps(report, separators=(",", ":")))
     return 0
 

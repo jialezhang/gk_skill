@@ -7,7 +7,7 @@
   "affected_claims": [],
   "affected_scenarios": [],
   "required_test_level": "fast",
-  "provider_modes": [],
+  "external_effect_ids": [],
   "invalidation_keys_changed": [],
   "full_run_reason": "not_applicable",
   "updated_at": ""

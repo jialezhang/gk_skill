@@ -8,6 +8,17 @@ import re
 import sys
 from pathlib import Path
 
+PLUGIN_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(PLUGIN_ROOT / "scripts"))
+
+from delivery_contract import (  # noqa: E402
+    COMPLETION_SCOPES,
+    GOAL_TERMINAL_STATUSES,
+    PROGRAM_STATUSES,
+    PROGRAM_VERIFIED_STATUSES,
+    version_at_least,
+)
+
 
 REQUIRED_TOP_LEVEL = {
     "schema_version",
@@ -25,18 +36,6 @@ REQUIRED_TOP_LEVEL = {
     "created_at",
     "updated_at",
 }
-PROGRAM_STATUSES = {
-    "PROGRAM_ACTIVE",
-    "PROGRAM_GATE_REVIEW",
-    "PROGRAM_INTEGRATION_PENDING",
-    "PROGRAM_TARGET_VERIFIED",
-    "COMPLETE",
-    "BLOCKED",
-}
-GOAL_TERMINAL = {"GOAL_TARGET_VERIFIED", "EXPLICITLY_DEFERRED"}
-COMPLETION_SCOPES = {"branch", "merged", "deployed", "production_verified"}
-
-
 def scalar(text: str, key: str, indent: int = 0) -> str | None:
     match = re.search(
         rf"^\s{{{indent}}}{re.escape(key)}:\s*[\"']?([^\"'\n]*)",
@@ -75,7 +74,11 @@ def main() -> int:
     text = args.state.read_text(encoding="utf-8")
     errors: list[str] = []
     top_level = set(re.findall(r"^([a-zA-Z0-9_]+):", text, re.MULTILINE))
-    for key in sorted(REQUIRED_TOP_LEVEL - top_level):
+    schema_version = scalar(text, "schema_version")
+    required_top_level = set(REQUIRED_TOP_LEVEL)
+    if version_at_least(schema_version, (1, 2)):
+        required_top_level.add("completion_receipt")
+    for key in sorted(required_top_level - top_level):
         errors.append(f"missing top-level key: {key}")
 
     status = scalar(text, "status")
@@ -109,7 +112,7 @@ def main() -> int:
             continue
         if completed < 0 or total < 0 or completed > total:
             errors.append(f"invalid progress values: {lane}={completed}/{total}")
-        if status in {"PROGRAM_TARGET_VERIFIED", "COMPLETE"} and completed != total:
+        if status in PROGRAM_VERIFIED_STATUSES and completed != total:
             errors.append(f"terminal Program has incomplete progress: {lane}={completed}/{total}")
     for key in ("current_activity", "last_progress_at"):
         if not scalar(progress, key, 2) and not args.allow_empty:
@@ -122,8 +125,8 @@ def main() -> int:
         errors.append("Program must contain at least one Goal")
     if len(goal_ids) != len(set(goal_ids)):
         errors.append("duplicate goal_id values")
-    if status in {"PROGRAM_TARGET_VERIFIED", "COMPLETE"}:
-        if len(goal_statuses) != len(goal_ids) or any(item not in GOAL_TERMINAL for item in goal_statuses):
+    if status in PROGRAM_VERIFIED_STATUSES:
+        if len(goal_statuses) != len(goal_ids) or any(item not in GOAL_TERMINAL_STATUSES for item in goal_statuses):
             errors.append("PROGRAM_HAS_UNFINISHED_GOALS")
 
     release = section(text, "release")
@@ -158,6 +161,13 @@ def main() -> int:
                 errors.append(f"Program completion requires candidate.{key}")
         if scalar(candidate, "status", 2) != "target_verified":
             errors.append("Program completion requires candidate.status: target_verified")
+        if version_at_least(schema_version, (1, 2)):
+            receipt = section(text, "completion_receipt")
+            if scalar(receipt, "status", 2) != "ready":
+                errors.append("COMPLETE_REQUIRES_READY_COMPLETION_RECEIPT")
+            for key in ("path", "sha256"):
+                if not scalar(receipt, key, 2):
+                    errors.append(f"complete Program requires completion_receipt.{key}")
 
     if errors:
         for error in errors:

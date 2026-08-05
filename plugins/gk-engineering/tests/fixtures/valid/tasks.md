@@ -26,8 +26,9 @@ plan_version: 1.0.0
   - risk and impact surface: status projection and production route
   - focused/change commands: focused render test and SC-001
   - full-run reason: not_applicable
-  - Provider mode: not_applicable
-  - Provider budget/call limit: not_applicable
+  - External effect policy: not_applicable
+  - External effect IDs: not_applicable
+  - External effect authorization/budget: not_applicable
   - evidence invalidation keys: commit, build, route
   - 阶段真实用户旅程/ exact-target handoff: SC-001
 - **Rollback/disable:** revert bounded component change

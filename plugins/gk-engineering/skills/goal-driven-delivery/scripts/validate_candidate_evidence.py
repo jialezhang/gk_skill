@@ -5,32 +5,21 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from pathlib import Path
 
+PLUGIN_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(PLUGIN_ROOT / "scripts"))
 
-PROVIDER_MODES = {
-    "mock",
-    "sandbox",
-    "real_free",
-    "real_expensive",
-    "not_applicable",
-}
-
-EVIDENCE_STATUSES = {
-    "draft",
-    "candidate",
-    "accepted",
-    "invalidated",
-    "superseded",
-}
-
-PROVENANCE_STATUSES = {
-    "pending",
-    "verified",
-    "not_applicable",
-    "invalidated",
-}
+from delivery_contract import (  # noqa: E402
+    EVIDENCE_STATUSES,
+    EXTERNAL_EFFECT_POLICIES,
+    LEGACY_PROVIDER_MODES,
+    PROVENANCE_STATUSES,
+    file_digest,
+    version_at_least,
+)
 
 
 def requires_lifecycle(data: dict[str, object]) -> bool:
@@ -38,10 +27,105 @@ def requires_lifecycle(data: dict[str, object]) -> bool:
     version = data.get("schema_version")
     if not isinstance(version, str):
         return "evidence_records" in data or "runtime_provenance" in data
-    try:
-        return tuple(int(part) for part in version.split(".")[:2]) >= (1, 1)
-    except ValueError:
-        return "evidence_records" in data or "runtime_provenance" in data
+    return version_at_least(version, (1, 1))
+
+
+def evidence_supports_candidate(record: dict[str, object], candidate: object) -> bool:
+    if record.get("candidate_commit") == candidate:
+        return True
+    revalidation = record.get("revalidation")
+    return (
+        isinstance(revalidation, dict)
+        and revalidation.get("candidate_commit") == candidate
+        and revalidation.get("result") == "accepted"
+        and isinstance(revalidation.get("validated_at"), str)
+        and bool(revalidation.get("validated_at"))
+        and isinstance(revalidation.get("invalidation_keys_checked"), list)
+        and bool(revalidation.get("invalidation_keys_checked"))
+        and all(
+            isinstance(item, str) and item
+            for item in revalidation.get("invalidation_keys_checked", [])
+        )
+        and isinstance(revalidation.get("evidence_path"), str)
+        and bool(revalidation.get("evidence_path"))
+    )
+
+
+def validate_candidate_freeze(
+    data: dict[str, object],
+    candidate: object,
+    profile_path: Path | None,
+    errors: list[str],
+) -> None:
+    freeze = data.get("candidate_freeze")
+    if not isinstance(freeze, dict):
+        errors.append("CANDIDATE_FREEZE_REQUIRED")
+        return
+    if freeze.get("status") != "frozen" or freeze.get("candidate_commit") != candidate:
+        errors.append("CANDIDATE_FREEZE_MISMATCH")
+    for key in ("frozen_at", "project_profile_path"):
+        if not isinstance(freeze.get(key), str) or not freeze.get(key):
+            errors.append(f"candidate_freeze requires {key}")
+    expected_profile_digest = freeze.get("project_profile_sha256")
+    if not isinstance(expected_profile_digest, str) or not expected_profile_digest:
+        errors.append("candidate_freeze requires project_profile_sha256")
+    elif profile_path is not None and profile_path.is_file():
+        actual_profile_digest = file_digest(profile_path)
+        if actual_profile_digest != expected_profile_digest:
+            errors.append(
+                "PROJECT_PROFILE_DIGEST_MISMATCH "
+                f"expected={expected_profile_digest} actual={actual_profile_digest}"
+            )
+    unresolved = freeze.get("unresolved_effect_ids")
+    if not isinstance(unresolved, list):
+        errors.append("candidate_freeze.unresolved_effect_ids must be a list")
+    elif unresolved:
+        errors.append("candidate freeze has unresolved external effects")
+
+
+def validate_external_effects(
+    scenario: dict[str, object],
+    label: str,
+    declared_effects: dict[str, str],
+    errors: list[str],
+) -> None:
+    effects = scenario.get("external_effects")
+    if not isinstance(effects, list):
+        errors.append(f"{label}: external_effects must be a list")
+        return
+    seen: set[str] = set()
+    for index, effect in enumerate(effects, 1):
+        if not isinstance(effect, dict):
+            errors.append(f"{label}: external effect #{index} must be an object")
+            continue
+        effect_id = effect.get("effect_id")
+        if not isinstance(effect_id, str) or not effect_id:
+            errors.append(f"{label}: external effect #{index} missing effect_id")
+            continue
+        if effect_id in seen:
+            errors.append(f"{label}: duplicate external effect {effect_id}")
+        seen.add(effect_id)
+        policy = effect.get("policy")
+        if policy not in EXTERNAL_EFFECT_POLICIES:
+            errors.append(f"{label}: {effect_id} has invalid policy")
+        declared_policy = declared_effects.get(effect_id)
+        if declared_policy is None:
+            errors.append(f"{label}: EXTERNAL_EFFECT_NOT_DECLARED {effect_id}")
+        elif declared_policy != policy:
+            errors.append(
+                f"{label}: EXTERNAL_EFFECT_POLICY_MISMATCH "
+                f"{effect_id} profile={declared_policy} scenario={policy}"
+            )
+        if policy in {"sandboxed", "authorized"} and (
+            not isinstance(effect.get("evidence_path"), str)
+            or not effect.get("evidence_path")
+        ):
+            errors.append(f"{label}: {effect_id} requires effect evidence")
+        if policy == "authorized" and (
+            not isinstance(effect.get("authorization_ref"), str)
+            or not effect.get("authorization_ref")
+        ):
+            errors.append(f"{label}: {effect_id} requires authorization_ref")
 
 
 def validate_lifecycle(
@@ -75,8 +159,8 @@ def validate_lifecycle(
             errors.append(f"{evidence_id}: missing kind")
         if not isinstance(record.get("evidence_path"), str) or not record.get("evidence_path"):
             errors.append(f"{evidence_id}: missing evidence_path")
-        if status == "accepted" and record.get("candidate_commit") != candidate:
-            errors.append(f"{evidence_id}: ACCEPTED_EVIDENCE_CANDIDATE_MISMATCH")
+        if status == "accepted" and not evidence_supports_candidate(record, candidate):
+            errors.append(f"{evidence_id}: EVIDENCE_REVALIDATION_REQUIRED")
         if status == "invalidated":
             if not record.get("invalidation_reason") or not record.get("invalidated_by"):
                 errors.append(f"{evidence_id}: invalidated evidence requires reason and invalidated_by")
@@ -97,6 +181,8 @@ def validate_lifecycle(
             errors.append(f"{label}: evidence_id is unknown")
         elif record.get("status") != "accepted":
             errors.append(f"{label}: referenced evidence is not accepted")
+        elif not evidence_supports_candidate(record, candidate):
+            errors.append(f"{label}: referenced evidence is not valid for candidate")
 
     for index, scenario in enumerate(scenarios, 1):
         if isinstance(scenario, dict) and scenario.get("status") == "passed":
@@ -166,6 +252,7 @@ def validate_runtime_provenance(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("manifest", type=Path)
+    parser.add_argument("--project-profile", type=Path)
     parser.add_argument("--allow-incomplete", action="store_true")
     args = parser.parse_args()
 
@@ -182,6 +269,48 @@ def main() -> int:
     candidate = data.get("candidate_commit")
     claims = data.get("acceptance_claims")
     scenarios = data.get("execution_scenarios")
+    profile_path = args.project_profile
+    freeze = data.get("candidate_freeze")
+    if profile_path is None and isinstance(freeze, dict):
+        raw_profile_path = freeze.get("project_profile_path")
+        if isinstance(raw_profile_path, str) and raw_profile_path:
+            candidate_profile = Path(raw_profile_path)
+            profile_path = (
+                candidate_profile
+                if candidate_profile.is_absolute()
+                else args.manifest.parent / candidate_profile
+            )
+    declared_effects: dict[str, str] = {}
+    if profile_path is not None and profile_path.is_file():
+        profile_result = subprocess.run(
+            [
+                sys.executable,
+                str(PLUGIN_ROOT / "scripts" / "validate_project_profile.py"),
+                str(profile_path),
+            ],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if profile_result.returncode != 0:
+            errors.extend(
+                f"project profile: {line}"
+                for line in (profile_result.stderr or profile_result.stdout).splitlines()
+                if line
+            )
+        try:
+            profile_data = json.loads(profile_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            profile_data = {}
+        for effect in profile_data.get("external_effects", []) if isinstance(profile_data, dict) else []:
+            if isinstance(effect, dict) and isinstance(effect.get("effect_id"), str):
+                declared_effects[str(effect["effect_id"])] = str(effect.get("policy", ""))
+    elif (
+        version_at_least(data.get("schema_version"), (1, 2))
+        and data.get("status") == "target_verified"
+        and not args.allow_incomplete
+    ):
+        errors.append(f"PROJECT_PROFILE_REQUIRED {profile_path}")
     if (not isinstance(candidate, str) or not candidate) and not args.allow_incomplete:
         errors.append("missing candidate_commit")
     if not isinstance(claims, list):
@@ -211,11 +340,16 @@ def main() -> int:
             errors.append(f"{scenario_id or index}: proves must be non-empty")
         elif scenario.get("status") == "passed":
             covered.update(str(item) for item in proves)
-        provider_mode = scenario.get("provider_mode")
-        if provider_mode not in PROVIDER_MODES:
-            errors.append(f"{scenario_id or index}: invalid provider_mode")
-        if provider_mode == "real_expensive" and not scenario.get("provider_budget"):
-            errors.append(f"{scenario_id or index}: real_expensive requires provider_budget")
+        if version_at_least(data.get("schema_version"), (1, 2)):
+            validate_external_effects(
+                scenario, str(scenario_id or index), declared_effects, errors
+            )
+        else:
+            provider_mode = scenario.get("provider_mode")
+            if provider_mode not in LEGACY_PROVIDER_MODES:
+                errors.append(f"{scenario_id or index}: invalid provider_mode")
+            if provider_mode == "real_expensive" and not scenario.get("provider_budget"):
+                errors.append(f"{scenario_id or index}: real_expensive requires provider_budget")
 
     unresolved = [
         item
@@ -233,6 +367,8 @@ def main() -> int:
             validate_runtime_provenance(data, candidate, errors)
 
     if status == "target_verified" and not args.allow_incomplete:
+        if version_at_least(data.get("schema_version"), (1, 2)):
+            validate_candidate_freeze(data, candidate, profile_path, errors)
         missing = sorted(set(str(item) for item in claims) - covered)
         if missing:
             errors.append(f"acceptance claims lack same-candidate passed scenarios: {missing}")

@@ -33,8 +33,9 @@ Verify the production route reconciles the authoritative running state after rec
 - Proves: AC-001
 - Stage: 阶段真实用户旅程
 - Exact target: production route
-- Provider mode: not_applicable
-- Provider budget/call limit: not_applicable
+- External effect policy: not_applicable
+- External effect IDs: not_applicable
+- External effect authorization/budget: not_applicable
 - Actions: open the task and observe status
 - Evidence paths: evidence/T-001
 - Invalidation keys: commit, build, route

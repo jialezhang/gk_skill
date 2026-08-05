@@ -37,3 +37,9 @@ State pins PRD, plan, tasks, and verification revisions. The controller must not
 ## Terminal telemetry
 
 Before a Goal transitions to `complete` or `blocked`, the controller captures a completion telemetry snapshot. The snapshot records its capture time, source, observed totals by model/stage where available, and explicit unavailable fields. A terminal state without a pre-transition snapshot is invalid because many runtimes no longer expose Goal usage after completion.
+
+## Completion transaction
+
+`GOAL_TARGET_VERIFIED` and `PROGRAM_TARGET_VERIFIED` are verified pre-terminal states. The controller issues a completion receipt only while both states, the candidate, Profile, routing log, raw rollout files, telemetry, and optional integration manifest still match. The receipt records SHA-256 digests for every input. State-file digests normalize only the fields changed by the terminal transition; candidate, Profile, evidence, routing or other state changes still invalidate the receipt.
+
+Before transitioning either state to `COMPLETE`, revalidate the receipt against the current files, then persist the receipt path and digest in both states. Any changed or missing input invalidates the receipt and returns delivery to the relevant verification state. `COMPLETE` without a ready receipt is invalid for current schemas.

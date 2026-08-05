@@ -1,4 +1,4 @@
-schema_version: "1.1"
+schema_version: "1.2"
 program_id: ""
 status: PROGRAM_ACTIVE
 completion_scope: branch
@@ -38,5 +38,9 @@ coordination:
   active_started_at: ""
   coordination_wait_started_at: ""
   coordination_wait_seconds: 0
+completion_receipt:
+  status: pending
+  path: ""
+  sha256: ""
 created_at: ""
 updated_at: ""
