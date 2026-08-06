@@ -1,6 +1,6 @@
 {
   "name": "gk-engineering",
-  "version": "0.2.4+codex.20260806095558",
+  "version": "0.2.4+codex.20260806100027",
   "description": "Project-agnostic delivery with bounded autonomous execution windows, evidence-calibrated estimates, declarative safety profiles, audited model routing, fail-closed completion receipts, and Goal retrospectives.",
   "author": {
     "name": "jialezhang"
@@ -13,6 +13,10 @@
     "developerName": "jialezhang",
     "category": "Productivity",
     "capabilities": [],
+    "brandColor": "#315EFB",
+    "composerIcon": "./assets/composer-icon.svg",
+    "logo": "./assets/logo.svg",
+    "logoDark": "./assets/logo-dark.svg",
     "defaultPrompt": "Use $product-to-delivery to guide this feature from discovery through approved and verified delivery."
   }
 }

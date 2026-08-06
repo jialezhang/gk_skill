@@ -167,6 +167,17 @@ def project_profile() -> dict[str, object]:
 
 
 class ProjectProfileTests(unittest.TestCase):
+    def test_plugin_manifest_exposes_complete_brand_assets(self) -> None:
+        manifest = json.loads(
+            (PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+        )
+        interface = manifest["interface"]
+        self.assertEqual(interface["brandColor"], "#315EFB")
+        for field in ("composerIcon", "logo", "logoDark"):
+            asset_path = interface[field]
+            self.assertTrue(asset_path.startswith("./assets/"))
+            self.assertTrue((PLUGIN_ROOT / asset_path).is_file(), field)
+
     def validate(self, profile: dict[str, object]) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "project-profile.json"
