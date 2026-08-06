@@ -13,6 +13,10 @@ Checkpoint after each independently runnable vertical slice, approved milestone,
 5. Record commit SHA, verification evidence, push status, remaining risk, report time, and every new/continued/invalidated evidence record in delivery state.
 6. Send a progress report immediately.
 
+The report does not create an implicit approval gate. Unless an explicit approval, product,
+authority, destructive-action, external-effect, or genuine blocker rule applies, close the current
+execution window with `next_action: continue` and resume from the ready queue.
+
 Required progress report fields:
 
 - completed outcome and exact target;

@@ -392,6 +392,34 @@ class ModelRoutingPolicyTests(unittest.TestCase):
 
 
 class DeliveryGovernanceTextTests(unittest.TestCase):
+    def test_delivery_uses_a_bounded_autonomous_executor_micro_loop(self) -> None:
+        delivery = (SKILL_ROOT / "goal-driven-delivery" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        loop = (
+            SKILL_ROOT
+            / "goal-driven-delivery"
+            / "references"
+            / "executor-micro-loop.md"
+        ).read_text(encoding="utf-8")
+        packets = (
+            SKILL_ROOT
+            / "goal-driven-delivery"
+            / "references"
+            / "execution-packets.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("references/executor-micro-loop.md", delivery)
+        for required in (
+            "1–3",
+            "ready queue",
+            "non-overlapping write scopes",
+            "Do not wait for routine human feedback",
+            "product-level conflict",
+        ):
+            self.assertIn(required, loop)
+        self.assertIn("execution window ID", packets)
+
     def test_estimation_contract_prevents_agentic_tail_double_counting(self) -> None:
         sizing = (
             SKILL_ROOT / "assess-goal-scope" / "references" / "sizing-contract.md"
@@ -557,6 +585,39 @@ class DeliveryStatePolicyTests(unittest.TestCase):
         result = self._validate(state)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("AGENT_BUDGET_EXHAUSTED", result.stderr)
+
+    def test_schema_1_4_persists_bounded_execution_windows(self) -> None:
+        state = (
+            SKILL_ROOT / "goal-driven-delivery" / "assets" / "delivery-state-template.yaml"
+        ).read_text(encoding="utf-8")
+        self.assertIn('schema_version: "1.4"', state)
+        self.assertIn("execution_policy:", state)
+        self.assertIn("min_tasks_per_window: 1", state)
+        self.assertIn("max_tasks_per_window: 3", state)
+        self.assertIn("checkpoint_behavior: report_and_continue", state)
+        self.assertIn("execution_windows: []", state)
+        result = self._validate(state)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_execution_window_rejects_oversized_or_feedback_waiting_batch(self) -> None:
+        state = (
+            SKILL_ROOT / "goal-driven-delivery" / "assets" / "delivery-state-template.yaml"
+        ).read_text(encoding="utf-8").replace(
+            "execution_windows: []",
+            """execution_windows:
+  - window_id: EW-01
+    task_ids: [T-01, T-02, T-03, T-04]
+    status: completed
+    started_at: "2026-08-06T01:00:00Z"
+    closed_at: "2026-08-06T02:00:00Z"
+    next_action: wait_for_feedback
+    reason: "routine checkpoint"
+""".rstrip(),
+        )
+        result = self._validate(state)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("EXECUTION_WINDOW_TASK_LIMIT", result.stderr)
+        self.assertIn("invalid next_action", result.stderr)
 
     def test_completed_checkpoint_requires_commit_push_and_report(self) -> None:
         state = (

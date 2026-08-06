@@ -10,6 +10,7 @@ Read these references completely before starting:
 - [references/orchestration-contract.md](references/orchestration-contract.md)
 - [references/state-machine.md](references/state-machine.md)
 - [references/execution-packets.md](references/execution-packets.md)
+- [references/executor-micro-loop.md](references/executor-micro-loop.md)
 - [references/escalation-loop.md](references/escalation-loop.md)
 - [references/verification-loop.md](references/verification-loop.md)
 - [references/checkpoint-contract.md](references/checkpoint-contract.md)
@@ -65,7 +66,7 @@ The program owns one cumulative budget across all Goals: normal target 8, soft l
 
 1. Re-read Goal, approved revisions, repository state, and delivery state. Reconcile abandoned/running attempts before selecting work.
 2. Compute the ready queue from dependencies and gates; do not trust task ordering in prose.
-3. Select tasks whose write scopes and consumed contracts do not conflict. Prefer one owner for coupled vertical work over artificial frontend/backend parallelism.
+3. Open a bounded execution window using [references/executor-micro-loop.md](references/executor-micro-loop.md): select 1–3 ready tasks whose write scopes and consumed contracts do not conflict. Prefer one owner for coupled vertical work over artificial frontend/backend parallelism; three tasks is a maximum, not a quota.
 4. Implement directly or reuse/spawn the preferred executor with explicit file/responsibility
    ownership and available program budget. Prefer the verified persistent `gpt-5.6-terra` context;
    after three failed raw switch attempts, the current main agent continues under
@@ -87,8 +88,9 @@ The program owns one cumulative budget across all Goals: normal target 8, soft l
    - product conflict → stop affected delivery and request user decision.
 10. At each gate invoke `$review-delivery-gate` with exact evidence. Never let task completion implicitly pass a gate. Enforce every external-effect and protected-resource rule from the project Profile. A runtime target must have accepted provenance for the same candidate: preflight/launch, observed process or executor, build identity, target probe, and cleanup when applicable.
 11. When an independently runnable 阶段真实用户旅程 or planned stage is complete, run the checkpoint contract: risk-appropriate verification, diff/protected-data checks, commit only owned files, push the Goal branch, then issue a progress report with the commit SHA and four fixed denominators. A checkpoint is not delivered if commit or push failed.
-12. Update state after every turn, attempt, review, gate, checkpoint, revision, and invalidation. Append routing records through plugin-root `scripts/append_routing_event.py --log <model-routing.jsonl> --event <event.json>` so an invalid or unknown event cannot mutate the durable log. Preserve history; do not overwrite failed evidence. Classify evidence as `draft`, `candidate`, `accepted`, `invalidated`, or `superseded`; record the invalidator and replacement when evidence can no longer support a gate.
-13. Continue until all blocking requirements reach `Verified` on the exact target and independent
+12. Close each execution window with its routed outcome and next action. Report checkpoints without treating routine feedback as an approval gate; when safe work remains, recompute the ready queue and continue.
+13. Update state after every turn, execution window, attempt, review, gate, checkpoint, revision, and invalidation. Append routing records through plugin-root `scripts/append_routing_event.py --log <model-routing.jsonl> --event <event.json>` so an invalid or unknown event cannot mutate the durable log. Preserve history; do not overwrite failed evidence. Classify evidence as `draft`, `candidate`, `accepted`, `invalidated`, or `superseded`; record the invalidator and replacement when evidence can no longer support a gate.
+14. Continue until all blocking requirements reach `Verified` on the exact target and independent
     Terra or audited Terra-fallback final acceptance passes on a clean commit, or an allowed Sol
     escalation is resolved.
 

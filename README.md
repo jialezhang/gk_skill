@@ -99,6 +99,7 @@ $goal-retrospective
   route-guard nonce is supplemental evidence; its absence alone does not block the Gate. A model
   mismatch still fails closed.
 - The normal Agent target is 8, soft limit 12, cumulative hard limit 20, maximum nesting depth 1, and at most 3 parallel Goal sessions.
+- Delivery runs through bounded 1–3 task execution windows selected from the dependency-ready queue; windows and checkpoints report progress without pausing safe in-scope work for routine feedback.
 - Each runnable stage ends with focused checks, an owned-file commit, verified push, and a fixed-denominator progress report.
 - Multi-Goal delivery is accepted only after a clean integration commit passes the complete approved verification path.
 - After the runtime Program Goal completes, `$goal-retrospective` reconciles the completion receipt, approved plan, delivery evidence, invalid runs, Git/runtime identity, time/Token口径, and next-cycle actions. It is a post-completion audit, not an acceptance gate.
@@ -113,7 +114,7 @@ The entry `SKILL.md` files are intentionally short routing surfaces. They are no
 | `$create-product-prd` | Discovery normalization, repository and user evidence, product-state modeling, requirement metadata, independent review, and deterministic PRD validation |
 | `$assess-goal-scope` | Repository-based work packages, P50/P80/P90 sizing, split recommendation, timeout decision, dependency/conflict graph, and Goal boundary handoff |
 | `$create-implementation-plan` | Direction readiness, architecture and ownership contracts, complete milestone/task baseline, dependency graph, delegation map, exact-target verification, independent plan review, and cross-artifact validation |
-| `$goal-driven-delivery` | Per-Goal Terra ownership, worktree/session isolation, ready-queue scheduling, 20-Agent hard cap, per-turn routing records, checkpoint commits, retries, gates, and restart recovery |
+| `$goal-driven-delivery` | Per-Goal Terra ownership, bounded autonomous executor windows, worktree/session isolation, ready-queue scheduling, 20-Agent hard cap, per-turn routing records, checkpoint commits, retries, gates, and restart recovery |
 | `$integrate-goals` | Clean integration worktree, ordered Goal merge, conflict routing, full verification, Luna acceptance, and cross-session evidence/telemetry aggregation |
 | `$review-delivery-gate` | Luna routine evidence review, Terra code-quality review, Sol escalation classification, exact-target acceptance, and final PRD-to-runtime reconciliation |
 | `$goal-retrospective` | Post-completion Goal identity and cost reconciliation, actual-stage reconstruction, invalid-run accounting, plan/acceptance audit, and executable next-cycle rules |

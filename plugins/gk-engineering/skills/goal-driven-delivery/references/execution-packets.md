@@ -26,6 +26,8 @@ Every executor receives:
     failure reason, current main model, and the `terra_route_fallback` routing record destination.
     Do not send the packet to a failed child; after attempt three, the main agent consumes it
     directly.
+18. execution window ID, the task's position within that bounded window, the other selected task
+    IDs, and explicit non-overlapping write-scope evidence.
 
 Do not load unrelated future tasks or the whole acceptance runbook into an executor's active context.
 

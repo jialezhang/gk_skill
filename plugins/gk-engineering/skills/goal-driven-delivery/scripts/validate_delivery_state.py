@@ -68,6 +68,8 @@ def main() -> int:
     required_top_level = set(REQUIRED_TOP_LEVEL)
     if version_at_least(schema_version, (1, 3)):
         required_top_level.update({"project_profile_path", "completion_receipt"})
+    if version_at_least(schema_version, (1, 4)):
+        required_top_level.update({"execution_policy", "execution_windows"})
     for key in sorted(required_top_level - top_level):
         errors.append(f"missing top-level key: {key}")
 
@@ -256,6 +258,89 @@ def main() -> int:
             errors.append(f"agent_budget.{key} must be {expected}")
     if budget_values.get("spawned_total", 0) > budget_values.get("hard_limit", 20):
         errors.append("AGENT_BUDGET_EXHAUSTED: spawned_total exceeds hard_limit")
+
+    if version_at_least(schema_version, (1, 4)):
+        policy_match = re.search(
+            r"(?ms)^execution_policy:\s*\n(.*?)(?=^[a-zA-Z0-9_]+:|\Z)",
+            text,
+        )
+        policy_block = policy_match.group(1) if policy_match else ""
+        expected_policy = {
+            "min_tasks_per_window": "1",
+            "max_tasks_per_window": "3",
+            "selection": "ready_queue",
+            "conflict_policy": "non_overlapping_write_scopes",
+            "checkpoint_behavior": "report_and_continue",
+        }
+        for key, expected in expected_policy.items():
+            match = re.search(
+                rf"^\s{{2}}{key}:\s*([^\s#]+)\s*$",
+                policy_block,
+                re.MULTILINE,
+            )
+            if not match or match.group(1) != expected:
+                errors.append(f"execution_policy.{key} must be {expected}")
+
+        window_blocks = re.findall(
+            r"(?ms)^\s{2}- window_id:\s*([^\n]+)\n(.*?)(?=^\s{2}- window_id:|^[a-zA-Z0-9_]+:|\Z)",
+            text,
+        )
+        window_ids: list[str] = []
+        open_windows = 0
+        allowed_next_actions = {"continue", "escalate", "complete", "blocked"}
+        for raw_id, block in window_blocks:
+            window_id = raw_id.strip().strip("\"'")
+            window_ids.append(window_id)
+            task_ids_match = re.search(
+                r"^\s{4}task_ids:\s*\[([^\]]*)\]\s*$", block, re.MULTILINE
+            )
+            task_ids = (
+                [item.strip().strip("\"'") for item in task_ids_match.group(1).split(",") if item.strip()]
+                if task_ids_match
+                else []
+            )
+            if not 1 <= len(task_ids) <= 3:
+                errors.append(
+                    f"EXECUTION_WINDOW_TASK_LIMIT: {window_id} must select 1-3 task_ids"
+                )
+
+            status_match = re.search(
+                r"^\s{4}status:\s*([a-z_]+)\s*$", block, re.MULTILINE
+            )
+            window_status = status_match.group(1) if status_match else None
+            if window_status not in {"open", "completed", "abandoned"}:
+                errors.append(f"invalid execution window status for {window_id}: {window_status}")
+            if window_status == "open":
+                open_windows += 1
+            if window_status == "completed":
+                for key in ("started_at", "closed_at"):
+                    match = re.search(
+                        rf'^\s{{4}}{key}:\s*["\']?([^"\'\n]*)',
+                        block,
+                        re.MULTILINE,
+                    )
+                    if not match or not match.group(1).strip():
+                        errors.append(f"completed execution window {window_id} requires {key}")
+                next_action_match = re.search(
+                    r"^\s{4}next_action:\s*([a-z_]+)\s*$", block, re.MULTILINE
+                )
+                next_action = next_action_match.group(1) if next_action_match else None
+                if next_action not in allowed_next_actions:
+                    errors.append(
+                        f"invalid next_action for execution window {window_id}: {next_action}"
+                    )
+                if next_action in {"escalate", "blocked"}:
+                    reason = re.search(
+                        r'^\s{4}reason:\s*["\']?([^"\'\n]*)', block, re.MULTILINE
+                    )
+                    if not reason or not reason.group(1).strip():
+                        errors.append(
+                            f"execution window {window_id} with next_action {next_action} requires reason"
+                        )
+        if len(window_ids) != len(set(window_ids)):
+            errors.append("duplicate execution window_id values")
+        if open_windows > 1:
+            errors.append("multiple open execution windows are not allowed")
 
     checkpoint_blocks = re.findall(
         r"(?ms)^\s{2}- checkpoint_id:\s*([^\n]+)\n(.*?)(?=^\s{2}- checkpoint_id:|\Z)",

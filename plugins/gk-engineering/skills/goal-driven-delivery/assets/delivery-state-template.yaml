@@ -1,4 +1,4 @@
-schema_version: "1.3"
+schema_version: "1.4"
 delivery_id: ""
 status: DELIVERY_ACTIVE
 project_profile_path: "project-profile.json"
@@ -39,9 +39,16 @@ agent_budget:
   spawned_total: 0
   max_nesting_depth: 1
   max_parallel_goal_sessions: 3
+execution_policy:
+  min_tasks_per_window: 1
+  max_tasks_per_window: 3
+  selection: ready_queue
+  conflict_policy: non_overlapping_write_scopes
+  checkpoint_behavior: report_and_continue
 tasks: {}
 gates: {}
 checkpoints: []
+execution_windows: []
 attempts: []
 active_agents: []
 progress:
