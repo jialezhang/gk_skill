@@ -1,0 +1,4 @@
+interface:
+  display_name: "Merge Push Primary"
+  short_description: "Merge a source branch into primary and push safely"
+  default_prompt: "Use $merge-push-primary to merge the committed source branch into the repository primary branch and push it safely."

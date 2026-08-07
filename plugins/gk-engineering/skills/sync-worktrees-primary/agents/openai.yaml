@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sync Worktrees Primary"
+  short_description: "Consolidate active worktrees and restart safely"
+  default_prompt: "Use $sync-worktrees-primary to consolidate every active worktree branch into the primary branch, push it, and restart the verified service."

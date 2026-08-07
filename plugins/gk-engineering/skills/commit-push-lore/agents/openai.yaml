@@ -1,0 +1,4 @@
+interface:
+  display_name: "Commit Push Lore"
+  short_description: "Commit and push scoped changes with Lore trailers"
+  default_prompt: "Use $commit-push-lore to commit the intended current-branch changes with a Lore message and push them safely."

@@ -11,6 +11,9 @@ from pathlib import Path
 
 
 EXPECTED_SKILLS = {
+    "commit-push-lore",
+    "merge-push-primary",
+    "sync-worktrees-primary",
     "product-to-delivery",
     "create-product-prd",
     "assess-goal-scope",
@@ -88,6 +91,9 @@ def main() -> int:
         "scripts/validate_project_profile.py",
         "scripts/delivery_contract.py",
         "skills/goal-driven-delivery/assets/project-profile-template.json",
+        "skills/commit-push-lore/agents/openai.yaml",
+        "skills/merge-push-primary/agents/openai.yaml",
+        "skills/sync-worktrees-primary/agents/openai.yaml",
         "skills/goal-retrospective/agents/openai.yaml",
         "skills/goal-retrospective/references/report-template.md",
         "spec-kit/preset/preset.yml",

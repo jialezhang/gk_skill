@@ -39,7 +39,7 @@ codex plugin marketplace add .
 codex plugin add gk-engineering@gk-skill
 ```
 
-Restart Codex after installation so the eight skills are discovered.
+Restart Codex after installation so the eleven skills are discovered.
 
 ## Install the Spec Kit layer into a project
 
@@ -110,6 +110,9 @@ The entry `SKILL.md` files are intentionally short routing surfaces. They are no
 
 | Skill | Full procedure behind the entry point |
 | --- | --- |
+| `$commit-push-lore` | Scoped staging, repository-compliant Lore commit messages, optional current-branch push, and post-commit verification without disturbing unrelated work |
+| `$merge-push-primary` | Remote-default-branch detection, committed-source merge, merged-result verification, and safe primary-branch push without rewriting shared history |
+| `$sync-worktrees-primary` | Active-worktree inventory, clean-source consolidation into remote primary, commit-ancestry proof, documented service restart, and runtime-revision health evidence |
 | `$product-to-delivery` | Lifecycle state detection, approval protocol, stage routing, recovery, and Sol/Terra authority boundaries |
 | `$create-product-prd` | Discovery normalization, repository and user evidence, product-state modeling, requirement metadata, independent review, and deterministic PRD validation |
 | `$assess-goal-scope` | Repository-based work packages, P50/P80/P90 sizing, split recommendation, timeout decision, dependency/conflict graph, and Goal boundary handoff |
