@@ -535,31 +535,49 @@ class DeliveryGovernanceTextTests(unittest.TestCase):
             "program baseline",
             "worktree",
             "checkpoint",
-            "current main agent",
-            "Do not spawn, create, or delegate",
+            "Agent budget",
         ):
             self.assertIn(required, text)
 
-    def test_prd_is_authored_and_reviewed_only_by_main_agent(self) -> None:
+    def test_prd_authorship_and_review_does_not_forbid_subagents(self) -> None:
         text = (SKILL_ROOT / "create-product-prd" / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("gpt-5.6-sol", text)
-        self.assertIn("current main agent", text)
-        self.assertIn("Do not spawn, create, or delegate", text)
-        self.assertNotIn("fresh `gpt-5.6-luna` context", text)
-        self.assertNotIn("second Sol reviewer", text)
+        self.assertNotIn("sole PRD author", text)
+        self.assertNotIn("Do not spawn, create, or delegate", text)
+        self.assertNotIn("without opening another agent or task", text)
 
-    def test_controller_keeps_prd_and_plan_work_in_main_agent(self) -> None:
-        controller = (SKILL_ROOT / "product-to-delivery" / "SKILL.md").read_text(
-            encoding="utf-8"
+    def test_prd_and_plan_work_does_not_forbid_subagents(self) -> None:
+        relatives = (
+            "product-to-delivery/SKILL.md",
+            "product-to-delivery/references/stage-routing.md",
+            "product-to-delivery/references/model-routing-contract.md",
+            "product-to-delivery/references/native-agent-routing.md",
+            "create-product-prd/SKILL.md",
+            "create-implementation-plan/SKILL.md",
+            "create-implementation-plan/references/planning-contract.md",
+            "create-implementation-plan/references/plan-review.md",
+            "goal-driven-delivery/SKILL.md",
+            "goal-driven-delivery/references/orchestration-contract.md",
+            "review-delivery-gate/SKILL.md",
+            "review-delivery-gate/references/plan-revision.md",
+            "review-delivery-gate/references/review-contract.md",
         )
-        revision = (
-            SKILL_ROOT / "review-delivery-gate" / "references" / "plan-revision.md"
-        ).read_text(encoding="utf-8")
-        for text in (controller, revision):
-            self.assertIn("current main agent", text)
-            self.assertIn("Do not spawn, create, or delegate", text)
-        self.assertNotIn("with a Sol-class product agent", controller)
-        self.assertNotIn("with a Sol-class planner", controller)
+        forbidden = (
+            "non-delegable",
+            "Do not spawn, create, or delegate",
+            "without opening another agent or task",
+            "Do not delegate the revision",
+            "without delegation",
+            "sole implementation-plan author",
+            "explicit user authorization to execute and use subagents",
+            "without spawning a reviewer agent",
+            "Only the current main agent may revise",
+            "main-agent-only Sol stages",
+        )
+        for relative in relatives:
+            text = (SKILL_ROOT / relative).read_text(encoding="utf-8")
+            for phrase in forbidden:
+                self.assertNotIn(phrase, text, relative)
 
     def test_multi_goal_integration_skill_exists(self) -> None:
         text = (SKILL_ROOT / "integrate-goals" / "SKILL.md").read_text(encoding="utf-8")

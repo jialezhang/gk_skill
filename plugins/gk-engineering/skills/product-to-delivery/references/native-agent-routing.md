@@ -79,10 +79,12 @@ and set `model_selection_scope: "turn"`.
 
 For a Codex task or another surface that accepts per-turn model selection, pass the required model
 on every turn and record `routing_surface: "codex_task"` plus
-`model_selection_scope: "turn"`. For main-agent-only Sol stages, record
-`routing_surface: "main_agent"` and verify the current runtime turn directly. If Sol is unavailable,
-keep the current model and use the audited `sol_route_fallback` shape from
-[model-routing-contract.md](model-routing-contract.md); do not create a Sol-named child.
+`model_selection_scope: "turn"`. When a Sol stage runs in the main context, record
+`routing_surface: "main_agent"` and verify the current runtime turn directly. A Sol stage may also
+run in a verified native subagent or Codex task using the corresponding routing surface and model
+selection scope. If Sol is unavailable, keep the current model and use the audited
+`sol_route_fallback` shape from [model-routing-contract.md](model-routing-contract.md); never claim
+that a fallback child uses Sol without matching runtime evidence.
 
 If Terra cannot be selected and verified after three raw attempts, record
 `MODEL_ROUTE_UNAVAILABLE` or the more specific route-guard failure and continue the implementation

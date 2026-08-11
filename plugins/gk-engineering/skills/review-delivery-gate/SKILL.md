@@ -21,7 +21,7 @@ Run the no-write model handshake before review work. Bind native review to the r
 call and child runtime model. A route-guard nonce is optional supplemental evidence.
 `MODEL_ROUTE_MISMATCH` or a missing raw handshake invalidates the review and quarantines its output.
 
-Gate review may identify a PRD or plan conflict, but artifact modification is non-delegable: the current main agent must perform every PRD or implementation-plan revision. Do not spawn, create, or delegate a child agent, subagent, separate reviewer context, or separate task to make those revisions.
+Gate review may identify a PRD or plan conflict. Perform artifact modification through the owning PRD or implementation-planning stage.
 
 Read these references completely:
 
@@ -51,7 +51,7 @@ Read these references completely:
 ### Decide
 
 1. For local rework, return precise task/evidence requirements to Terra without redesigning the plan.
-2. For a plan conflict, return the evidence packet to the current main agent. The main agent enters the planning stage, preferring Sol and otherwise continuing on the current model under `sol_route_fallback`; it revises only the affected technical baseline/tasks, increments the plan version, records decisive evidence, and identifies invalidated attempts/gates.
+2. For a plan conflict, return the evidence packet to the planning stage, preferring Sol and otherwise continuing on the current model under `sol_route_fallback`; revise only the affected technical baseline/tasks, increment the plan version, record decisive evidence, and identify invalidated attempts/gates.
 3. For a product conflict, present the user with the minimum decision set, product consequences, and recommended option; do not approve a downgrade silently.
 4. Return one verdict: `GATE_PASSED`, `REWORK_REQUIRED`, `PLAN_REVISED`, `PRODUCT_DECISION_REQUIRED`, `VERIFICATION_BLOCKED`, or `TARGET_VERIFIED`.
 5. Persist the verdict and evidence references in delivery state/decision log before Terra resumes.

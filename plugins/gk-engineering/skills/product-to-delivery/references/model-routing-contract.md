@@ -13,9 +13,9 @@ Thread names and agent roles do not prove model identity. The controller must:
 5. append immutable handshake and execution records to `model-routing.jsonl`;
 6. quarantine all delegated output after a missing or mismatched route; for implementation,
    debugging, local rework, delivery control, or integration, continue in the current main context
-   with its existing model and record an auditable Terra-route fallback; for Sol-owned main-agent
-   stages, continue on the current model under `sol_route_fallback` when live capability evidence
-   proves Sol unavailable.
+   with its existing model and record an auditable Terra-route fallback; for Sol stages, continue
+   on the current model under `sol_route_fallback` when live capability evidence proves Sol
+   unavailable.
 
 Read [native-agent-routing.md](native-agent-routing.md) completely before using Codex native
 subagents. Native model overrides require `fork_turns: "none"` or a positive limited-history
@@ -93,7 +93,7 @@ Required current-model record when Sol is unavailable:
 }
 ```
 
-Allowed Sol failure reasons are `model_not_listed`, `route_unavailable`, `selection_rejected`, and `runtime_model_mismatch`. Evidence sources are `live_model_capabilities`, `model_selection_error`, or `runtime_turn_context`. The requested and observed fallback model must match the actual current model. `request_explicit` is false because the stage did not independently select the fallback model. This record preserves main-agent ownership and permits the Goal lifecycle to continue; it must never be replaced by a Sol-named child or an unevidenced claim.
+Allowed Sol failure reasons are `model_not_listed`, `route_unavailable`, `selection_rejected`, and `runtime_model_mismatch`. Evidence sources are `live_model_capabilities`, `model_selection_error`, or `runtime_turn_context`. The requested and observed fallback model must match the actual current model. `request_explicit` is false because the stage did not independently select the fallback model. This record permits the Goal lifecycle to continue; never label an unevidenced route or fallback child as Sol.
 
 Use the same current-model shape with `allowed_reason: "luna_route_fallback"` and
 `fallback_from_model: "gpt-5.6-luna"` when the active routing surface does not expose Luna. Luna
@@ -155,15 +155,13 @@ the current context under `luna_route_fallback`. A task named “Luna verifier�
 
 ## Role boundaries
 
-- **Sol:** preferred for product discovery, PRD authorship, scope assessment, implementation planning, product decisions, architecture/plan contradictions, and high-risk security judgment. If unavailable, the current main model performs the same non-delegable work under `sol_route_fallback`.
+- **Sol:** preferred for product discovery, PRD authorship, scope assessment, implementation planning, product decisions, architecture/plan contradictions, and high-risk security judgment. If unavailable, the current model performs the work under `sol_route_fallback`.
 - **Terra:** preferred delegated model for implementation, debugging, integration, and
   code-quality review; browser acceptance, 阶段真实用户旅程, runtime/provider-boundary acceptance,
   and final exact-target acceptance retain Terra as the preferred route. When Terra cannot be
   verified after three raw attempts, the current model continues under the audited fallback;
   final acceptance additionally requires a fresh independent read-only reviewer context.
 - **Luna:** deterministic low-complexity checks only: focused tests, typecheck, build, diff check, baseline comparison, checklist review, and evidence reconciliation. Luna must not own browser execution, runtime lifecycle judgment, user-experience judgment, or final acceptance.
-
-PRD and implementation-planning use is restricted further: the current main agent must perform all authorship, review, validation, and revision. Prefer Sol, but continue on the current model with audited `sol_route_fallback` evidence when Sol is unavailable. A controller must not satisfy this route by creating a Sol child agent, subagent, separate reviewer context, or separate task.
 
 Final exact-target acceptance must run in a fresh Terra thread, or a fresh audited current-model
 Terra-fallback thread, that is not one of the implementation threads. Its record must include

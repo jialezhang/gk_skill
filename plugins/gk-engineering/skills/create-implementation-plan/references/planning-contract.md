@@ -20,8 +20,8 @@ Freeze the exact product/module, entry point, routes, services, repositories, st
 
 | Level | Executor rule |
 | --- | --- |
-| `MUST` | Preserve. Only the user may change a product contract; the current main agent may revise technical MUSTs when authorized evidence requires it, preferring Sol and otherwise using `sol_route_fallback`. |
-| `BASELINE` | Follow by default. A direct repository or runtime contradiction requires current-main-agent revision, preferring Sol and otherwise using the current model. |
+| `MUST` | Preserve. Only the user may change a product contract; technical MUSTs may be revised when authorized evidence requires it, preferring Sol and otherwise using `sol_route_fallback`. |
+| `BASELINE` | Follow by default. A direct repository or runtime contradiction requires revision through the planning stage, preferring Sol and otherwise using the current model. |
 | `VERIFY_FIRST` | Test before dependent implementation; never treat as established fact. |
 | `RECOMMENDED` | Use unless a simpler equivalent local choice preserves all contracts. Record deviations. |
 | `DEFERRED` | Decide at the named gate using the written decision rule. |
@@ -79,4 +79,4 @@ The current main planning agent recommends role, skills, write scope, parallel s
 
 ## Plan revision
 
-When execution disproves a baseline assumption, the current main agent runs the planning stage itself, preferring Sol and otherwise using the current model under `sol_route_fallback`. It changes only the affected plan/tasks, increments the plan revision, records the decisive evidence, and invalidates downstream task attempts that consumed the old contract. Do not delegate the revision to a child agent or separate reviewer task. A technical revision that changes the PRD must stop for user approval, after which the current main agent performs the PRD revision.
+When execution disproves a baseline assumption, rerun the planning stage, preferring Sol and otherwise using the current model under `sol_route_fallback`. Change only the affected plan/tasks, increment the plan revision, record the decisive evidence, and invalidate downstream task attempts that consumed the old contract. A technical revision that changes the PRD must stop for user approval before the PRD is revised.

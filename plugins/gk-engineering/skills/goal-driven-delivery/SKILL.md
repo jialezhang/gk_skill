@@ -30,8 +30,7 @@ Require all of:
 - a validated `project-profile.json` declaring target components, protected resources, external effects, acceptance journeys, verification commands, and rollback actions;
 - a validated scope assessment and selected Goal boundary;
 - a passing Sol/Terra/Luna routing Canary, where an evidenced role-specific fallback on the current
-  model satisfies unavailable slots and Terra fallback includes three failed raw attempts;
-- explicit user authorization to execute and use subagents.
+  model satisfies unavailable slots and Terra fallback includes three failed raw attempts.
 
 Return `DELIVERY_NOT_READY` if any condition is missing. Do not repair approval metadata implicitly.
 

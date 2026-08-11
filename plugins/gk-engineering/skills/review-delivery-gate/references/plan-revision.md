@@ -1,6 +1,6 @@
 # Plan Revision Protocol
 
-The current main agent owns every plan revision. Do not spawn, create, or delegate to a child agent, subagent, separate reviewer context, or separate task for any revision step. Prefer Sol for the planning stage; if unavailable, use the current model and record `sol_route_fallback` without blocking the Goal.
+Prefer Sol for plan revisions; if unavailable, use the current model and record `sol_route_fallback` without blocking the Goal.
 
 ## Revision steps
 

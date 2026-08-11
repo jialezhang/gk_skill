@@ -14,20 +14,20 @@
 | No discovery and intent materially ambiguous | `grill-me` |
 | Technical-change candidate, no PRD decision | ask whether PRD is needed; include a recommendation and rationale |
 | User chooses `PRD_NOT_REQUIRED` | record the choice and enter the technical-change lane |
-| User chooses `PRD_REQUIRED`, no PRD | current main agent runs `create-product-prd` |
+| User chooses `PRD_REQUIRED`, no PRD | run `create-product-prd` |
 | Request crosses a governed product boundary, no PRD | explain why a PRD is required, then run `create-product-prd` |
-| PRD `DRAFT` or `CHANGE_REQUESTED` | current main agent revises PRD |
+| PRD `DRAFT` or `CHANGE_REQUESTED` | revise PRD |
 | PRD `REVIEW_REQUIRED` | wait for user approval |
 | PRD `APPROVED`, no matching scope assessment | `assess-goal-scope` |
 | Scope split decision pending | ask user; after 240 seconds default to one Goal |
-| Scope decision recorded, no matching plan | current main agent runs `create-implementation-plan` |
+| Scope decision recorded, no matching plan | run `create-implementation-plan` |
 | Plan `READINESS_BLOCKED` | Prefer Sol to gather missing technical evidence; if unavailable, current model continues under `sol_route_fallback` |
 | Plan `PLAN_REVIEW_REQUIRED` | wait for user approval |
 | Plan `PLAN_APPROVED`, Canary missing | run and verify Sol/Terra/Luna routing Canary; evidenced role-specific current-model fallback is non-blocking |
 | Single-Goal plan approved, no active delivery | `goal-driven-delivery` |
 | Multi-Goal program approved | create one runtime Program Goal and `program-state.yaml`, then start bounded Goal sessions/worktrees by dependency wave |
 | Delivery active, local failure | Terra repair loop |
-| Delivery active, plan contradiction | current main agent performs the plan review/revision, preferring Sol and otherwise using `sol_route_fallback` |
+| Delivery active, plan contradiction | perform the plan review/revision, preferring Sol and otherwise using `sol_route_fallback` |
 | Delivery active, product conflict | user decision |
 | Goal checkpoint complete | commit, push, and progress report |
 | All Goals are `GOAL_TARGET_VERIFIED` | `integrate-goals` in a clean integration worktree |
@@ -53,7 +53,6 @@
 - Do not use a retrospective as acceptance evidence, infer missing statistics, or reopen a valid completion solely because the retrospective write failed.
 - Do not manufacture a retrospective for the technical-change lane when no runtime Goal exists; invoke it there only when the user explicitly requests a retrospective for an identifiable Goal.
 - Do not ask the user to decide discoverable technical facts.
-- The current main agent owns all PRD and implementation-plan creation, review, and revision. Do not spawn, create, or delegate any part of those stages to a child agent, subagent, separate reviewer context, or separate task.
 - Preferred model unavailability never blocks Goal work by itself. Preserve ownership and
   independence, use the current model, and record complete role-specific fallback evidence; Terra
   fallback additionally requires three failed raw route attempts.

@@ -7,7 +7,7 @@ Require the approved artifact versions, affected task/gate IDs, repository diff,
 ## Finding ownership
 
 - `local_rework`: implementation does not satisfy an unchanged task contract; return to Terra.
-- `plan_conflict`: repository/runtime evidence contradicts a technical baseline or dependency; return it to the current main agent, which revises the affected plan without delegation, preferring Sol and otherwise using `sol_route_fallback`.
+- `plan_conflict`: repository/runtime evidence contradicts a technical baseline or dependency; return it to the planning stage, which revises the affected plan, preferring Sol and otherwise using `sol_route_fallback`.
 - `product_decision_required`: any viable resolution changes approved product behavior, scope, invariant, safety, data ownership, completion, release scope, or significant cost; return options to the user.
 - `verification_blocked`: implementation may exist but the approved target cannot be exercised or evidenced.
 

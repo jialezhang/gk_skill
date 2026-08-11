@@ -5,7 +5,7 @@ description: Use after product intent, scope, non-goals, and acceptance intent a
 
 # Create Product PRD
 
-The current main agent is the sole PRD author and reviewer. Prefer `gpt-5.6-sol` with `high` reasoning; reserve `xhigh` for a documented product contradiction or unusually high-risk decision. When Sol is not listed, selection is rejected, or the observed route mismatches, continue with the current model and append `sol_route_fallback` plus live unavailability evidence to `model-routing.jsonl`. Do not return `MAIN_AGENT_SOL_REQUIRED` or block the Goal. Do not spawn, create, or delegate to a child agent, subagent, separate reviewer context, or separate task for PRD drafting, review, revision, or validation.
+Prefer `gpt-5.6-sol` with `high` reasoning for PRD authorship and review; reserve `xhigh` for a documented product contradiction or unusually high-risk decision. When Sol is not listed, selection is rejected, or the observed route mismatches, continue with the current model and append `sol_route_fallback` plus live unavailability evidence to `model-routing.jsonl`. Do not return `MAIN_AGENT_SOL_REQUIRED` or block the Goal.
 
 Read these references completely before writing:
 
@@ -35,9 +35,9 @@ Read these references completely before writing:
 3. Give every core requirement a stable ID and observable acceptance mapping.
 4. Keep implementation mechanisms out unless the user approved them as a product or organizational constraint.
 
-### Phase 4: Main-agent review and revision
+### Phase 4: Review and revision
 
-1. The current main agent starts a distinct review pass by rereading the discovery handoff, raw evidence, PRD, and quality rubric without opening another agent or task.
+1. Start a distinct review pass by rereading the discovery handoff, raw evidence, PRD, and quality rubric.
 2. Check deterministic completeness, traceability, ambiguity, acceptance journeys, product contradictions, and safety/high-risk decisions directly.
 3. Classify findings as `blocking`, `major`, or `minor` and assign each to discovery, PRD, or planning.
 4. Resolve every blocking and major PRD-owned finding. Ask the user only for product-owned findings.
@@ -51,4 +51,4 @@ Read these references completely before writing:
 - Include technical direction only when the user approved it as a product or organizational constraint; otherwise label it as a planning assumption.
 - Do not proceed to planning while a product choice would materially change user behavior, P0 scope, safety, data ownership, release scope, or cost.
 - Do not reward document length. Prefer precise product rules and executable acceptance over generic background prose.
-- PRD ownership remains with the current main agent through every revision, including changes requested during delivery or gate review.
+- Keep PRD ownership explicit through every revision, including changes requested during delivery or gate review.

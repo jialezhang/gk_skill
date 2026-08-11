@@ -2,7 +2,7 @@
 
 ## Single runtime owner
 
-The program controller owns cross-Goal dependencies, cumulative Agent budget, and integration readiness. Each Terra Goal controller owns only its Goal's live state. Spec Kit artifacts are durable baselines, not a second scheduler. Only the current main agent may revise PRDs or plans, preferring Sol and otherwise using the current model under `sol_route_fallback`; reviewers and Terra controllers return evidence to it and do not dispatch implementation while a revision is active.
+The program controller owns cross-Goal dependencies, cumulative Agent budget, and integration readiness. Each Terra Goal controller owns only its Goal's live state. Spec Kit artifacts are durable baselines, not a second scheduler. Revise PRDs or plans through their owning stage, preferring Sol and otherwise using the current model under `sol_route_fallback`; do not dispatch implementation while a revision is active.
 
 ## Role routing
 
@@ -16,7 +16,7 @@ The program controller owns cross-Goal dependencies, cumulative Agent budget, an
 | Deterministic test/build/checklist execution | `luna_verifier` | prefer `gpt-5.6-luna`; otherwise `luna_route_fallback` |
 | Browser, lifecycle, external-effect, and stage journey acceptance | `terra_acceptance` using Ego Lite `ego-browser` for every browser operation | prefer `gpt-5.6-terra`; otherwise audited fallback after three raw failures |
 | Final exact-target acceptance | `terra_final_acceptance` | prefer `gpt-5.6-terra`; otherwise fresh independent audited fallback reviewer |
-| Plan/architecture/security escalation | current main agent | prefer `gpt-5.6-sol`; otherwise current model under `sol_route_fallback` |
+| Plan/architecture/security escalation | planning reviewer | prefer `gpt-5.6-sol`; otherwise current model under `sol_route_fallback` |
 
 Model identity is a runtime contract. Pass the explicit preferred model when the surface supports it
 and verify observed metadata; a role name is not evidence. Raw native spawn arguments plus child
@@ -60,7 +60,7 @@ recommended_review:
 
 ## Revision invalidation
 
-When the current main agent changes a consumed contract in its planning stage, mark affected pending and completed-but-unverified attempts `stale`, record the new plan revision, and rerun only the evidence invalidated by the change. Sol fallback changes only the model route, not the invalidation rules. Do not erase prior evidence.
+When a planning revision changes a consumed contract, mark affected pending and completed-but-unverified attempts `stale`, record the new plan revision, and rerun only the evidence invalidated by the change. Sol fallback changes only the model route, not the invalidation rules. Do not erase prior evidence.
 
 ## Retry policy
 

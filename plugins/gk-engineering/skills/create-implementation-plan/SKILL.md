@@ -5,7 +5,7 @@ description: Use when an approved PRD and validated scope decision need an evide
 
 # Create Implementation Plan
 
-The current main agent is the sole implementation-plan author and reviewer. Prefer `gpt-5.6-sol`; if it is not listed, selection is rejected, or the observed route mismatches, continue with the current model and record `sol_route_fallback` with live evidence. Do not return `MAIN_AGENT_SOL_REQUIRED` or block the Goal. Do not spawn, create, or delegate to a child agent, subagent, separate reviewer context, or separate task for planning, review, revision, or validation. Do not implement product code in this stage.
+Prefer `gpt-5.6-sol` for implementation-plan authorship and review; if it is not listed, selection is rejected, or the observed route mismatches, continue with the current model and record `sol_route_fallback` with live evidence. Do not return `MAIN_AGENT_SOL_REQUIRED` or block the Goal. Do not implement product code in this stage.
 
 Read all references completely:
 
@@ -68,9 +68,9 @@ Require `prd_status: APPROVED` and a validated `scope-assessment.yaml` whose spl
 6. Define candidate identity, evidence reuse/invalidation rules, gate prerequisites, forbidden substitutions, stop action, and recovery owner.
 7. Distinguish `Implemented`, `Enabled`, `Executed`, `Verified`, and `Complete`.
 
-### Phase 5: Main-agent review
+### Phase 5: Review
 
-1. The current main agent starts a distinct review pass by rereading the PRD, scope decision, repository evidence, and all planning artifacts without opening another agent or task.
+1. Start a distinct review pass by rereading the PRD, scope decision, repository evidence, and all planning artifacts.
 2. Run the structural/coverage checklist and assess repository feasibility, worktree/write-conflict risk, execution practicality, and verification practicality directly.
 3. Resolve architecture choices, high-risk security boundaries, and product-plan contradictions in the owning artifact; return product-owned decisions to the user.
 4. Run requirement coverage, dependency, ownership, lifecycle/state-convergence, safety, rollback, false-precision, delegation, Goal sizing, checkpoint, and exact-target reviews.
@@ -85,4 +85,4 @@ Require `prd_status: APPROVED` and a validated `scope-assessment.yaml` whose spl
 - Avoid repeating global constraints inside every task; reference stable IDs.
 - Preserve a complete baseline for cross-model continuity while loading only the current execution packet during delivery.
 - Record output paths, revisions, evidence gaps, review verdict, and the exact approval boundary in the final handoff.
-- Implementation-plan ownership remains with the current main agent through every revision, including changes requested during delivery or gate review.
+- Keep implementation-plan ownership explicit through every revision, including changes requested during delivery or gate review.
