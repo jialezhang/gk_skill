@@ -63,6 +63,13 @@ When resuming a delivery created before Program state existed:
 5. recompute the four fixed denominators from the approved plan and durable evidence;
 6. validate Program and candidate state before continuing.
 
+If the recovered delivery has a missing or empty `model-routing.jsonl`, apply the historical
+empty-log recovery in `model-routing-contract.md` before any completion attempt. Revalidate raw
+rollouts into an empty log atomically; do not grandfather the absence. Because recovery changes an
+input digest, retain the old receipt as superseded history and issue a new receipt after the current
+completion gate passes. When raw route evidence is unavailable, keep the Program pre-terminal and
+rerun the affected route-dependent evidence instead of manufacturing records.
+
 Do not reset progress, create a fresh delivery history, or claim the old Goal completion proved integration/final acceptance.
 
 `completion_scope` is explicit: `branch`, `merged`, `deployed`, or `production_verified`. Report later release states independently rather than calling a branch-verification result deployed.

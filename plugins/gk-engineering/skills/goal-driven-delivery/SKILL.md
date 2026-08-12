@@ -136,6 +136,15 @@ expose them. Reuse the verified Terra context while its model, Goal, and worktre
 - On continuation, inspect live agents before declaring an attempt abandoned.
 - Reconcile repository changes with recorded attempt/worktree ownership.
 - If artifact revisions changed, pause and run invalidation analysis before resuming.
+- If a pre-existing governed delivery has a missing or empty `model-routing.jsonl`, do not
+  grandfather it, copy model names from receipts, or weaken the completion gate. Reconstruct a
+  candidate JSONL only from durable routing-event records, then run plugin-root
+  `scripts/recover_model_routing.py --log <model-routing.jsonl> --source <recovery.jsonl>
+  --completion-ready`. The recovery command re-reads raw rollout evidence and atomically replaces
+  only an empty log. A successful recovery changes the routing-log digest: preserve the former
+  receipt as superseded history and issue a new completion receipt on the unchanged candidate.
+  Missing or ambiguous raw evidence remains fail-closed and requires rerunning the affected
+  Canary, handshake, execution reconciliation, or independent final acceptance turn.
 - If the Goal remains active and safe work remains, continue; do not stop at a narrative checkpoint.
 - Mark blocked only after the applicable Goal policy and repeated-blocker threshold are satisfied.
 

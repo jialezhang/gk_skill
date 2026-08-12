@@ -416,6 +416,37 @@ completion_receipt:
 
 
 class RoutingRecorderTests(unittest.TestCase):
+    @staticmethod
+    def recoverable_record() -> dict[str, object]:
+        return {
+            "thread_id": "implementation-thread",
+            "turn_id": "implementation-turn",
+            "task_class": "implementation",
+            "requested_model": "gpt-5.6-terra",
+            "request_explicit": True,
+            "observed_model": "gpt-5.6-terra",
+            "observed_source": "rollout.turn_context.payload.model",
+            "phase": "execution",
+            "verified": True,
+            "allowed_reason": "implementation",
+        }
+
+    @staticmethod
+    def write_runtime_turn(sessions: Path, model: str) -> None:
+        (sessions / "rollout-implementation-thread.jsonl").write_text(
+            json.dumps(
+                {
+                    "type": "turn_context",
+                    "payload": {
+                        "turn_id": "implementation-turn",
+                        "model": model,
+                    },
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
     def test_invalid_event_never_mutates_the_routing_log(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -456,6 +487,145 @@ class RoutingRecorderTests(unittest.TestCase):
             )
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(log.read_text(encoding="utf-8"), accepted)
+
+    def test_empty_routing_log_recovers_only_with_raw_runtime_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sessions = root / "sessions"
+            sessions.mkdir()
+            source = root / "recovery.jsonl"
+            source.write_text(
+                json.dumps(self.recoverable_record()) + "\n",
+                encoding="utf-8",
+            )
+            self.write_runtime_turn(sessions, "gpt-5.6-terra")
+            log = root / "model-routing.jsonl"
+            log.write_text("", encoding="utf-8")
+
+            result = run_script(
+                "scripts/recover_model_routing.py",
+                "--log",
+                str(log),
+                "--source",
+                str(source),
+                "--sessions-root",
+                str(sessions),
+                "--archived-root",
+                str(root / "archived"),
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            recovered = [
+                json.loads(line)
+                for line in log.read_text(encoding="utf-8").splitlines()
+            ]
+            self.assertEqual(recovered, [self.recoverable_record()])
+
+    def test_failed_routing_recovery_leaves_empty_log_untouched(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sessions = root / "sessions"
+            sessions.mkdir()
+            source = root / "recovery.jsonl"
+            source.write_text(
+                json.dumps(self.recoverable_record()) + "\n",
+                encoding="utf-8",
+            )
+            self.write_runtime_turn(sessions, "gpt-5.6-sol")
+            log = root / "model-routing.jsonl"
+            log.write_text("\n", encoding="utf-8")
+
+            result = run_script(
+                "scripts/recover_model_routing.py",
+                "--log",
+                str(log),
+                "--source",
+                str(source),
+                "--sessions-root",
+                str(sessions),
+                "--archived-root",
+                str(root / "archived"),
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("ROUTING_RECOVERY_RAW_EVIDENCE_REQUIRED", result.stderr)
+            self.assertEqual(log.read_text(encoding="utf-8"), "\n")
+
+    def test_routing_recovery_never_overwrites_history(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            log = root / "model-routing.jsonl"
+            log.write_text('{"existing":true}\n', encoding="utf-8")
+            source = root / "recovery.jsonl"
+            source.write_text(
+                json.dumps(self.recoverable_record()) + "\n",
+                encoding="utf-8",
+            )
+
+            result = run_script(
+                "scripts/recover_model_routing.py",
+                "--log",
+                str(log),
+                "--source",
+                str(source),
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("ROUTING_RECOVERY_REQUIRES_EMPTY_LOG", result.stderr)
+            self.assertEqual(log.read_text(encoding="utf-8"), '{"existing":true}\n')
+
+    def test_routing_recovery_rejects_a_non_file_destination(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            log = root / "model-routing.jsonl"
+            log.mkdir()
+            source = root / "recovery.jsonl"
+            source.write_text(
+                json.dumps(self.recoverable_record()) + "\n",
+                encoding="utf-8",
+            )
+
+            result = run_script(
+                "scripts/recover_model_routing.py",
+                "--log",
+                str(log),
+                "--source",
+                str(source),
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("ROUTING_RECOVERY_LOG_NOT_REGULAR_FILE", result.stderr)
+            self.assertTrue(log.is_dir())
+
+    def test_completion_ready_recovery_rejects_a_partial_route_set(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sessions = root / "sessions"
+            sessions.mkdir()
+            source = root / "recovery.jsonl"
+            source.write_text(
+                json.dumps(self.recoverable_record()) + "\n",
+                encoding="utf-8",
+            )
+            self.write_runtime_turn(sessions, "gpt-5.6-terra")
+            log = root / "model-routing.jsonl"
+
+            result = run_script(
+                "scripts/recover_model_routing.py",
+                "--log",
+                str(log),
+                "--source",
+                str(source),
+                "--sessions-root",
+                str(sessions),
+                "--archived-root",
+                str(root / "archived"),
+                "--completion-ready",
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("MODEL_CANARY_INCOMPLETE", result.stderr)
+            self.assertFalse(log.exists())
 
 
 if __name__ == "__main__":

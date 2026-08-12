@@ -120,6 +120,32 @@ emitted by the bundled route guard when that hook surface is active. Copied rout
 authoritative. Missing, ambiguous, or mismatched raw runtime evidence fails validation; a missing
 nonce by itself does not. A rejected record cannot support a gate or completion claim.
 
+## Historical empty-log recovery
+
+An old receipt does not supply missing model-routing intent and never exempts a delivery from the
+runtime-evidence gate. When a governed delivery predates durable logging but its routing-event
+records and raw rollouts still exist, assemble those records into a recovery JSONL and run from the
+plugin root:
+
+```bash
+python3 scripts/recover_model_routing.py \
+  --log <model-routing.jsonl> \
+  --source <model-routing-recovery.jsonl> \
+  --completion-ready
+```
+
+The command accepts only a missing or whitespace-only destination, validates every recovered turn
+against `turn_context.payload.model`, applies the full Canary/transition/handshake requirements,
+and replaces the log atomically only after all checks pass. A forged, partial, mismatched, missing,
+or ambiguous rollout leaves the destination untouched.
+
+Recovery changes the routing-log digest. Preserve any prior receipt as immutable superseded
+history, rerun `validate_completion_gate.py --receipt ...`, and use the newly issued receipt for the
+terminal transition. Never edit the prior receipt or claim it became valid after the log changed.
+If the semantic routing fields or raw runtime evidence cannot be reconstructed, rerun the missing
+route-dependent work or acceptance on the same candidate; do not infer them from an Agent label,
+model self-report, or receipt summary.
+
 ## Live Canary
 
 Before formal delivery:

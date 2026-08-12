@@ -85,6 +85,7 @@ def main() -> int:
         "hooks/hooks.json",
         "hooks/terra_route_guard.py",
         "scripts/append_routing_event.py",
+        "scripts/recover_model_routing.py",
         "scripts/validate_completion_gate.py",
         "scripts/validate_completion_receipt.py",
         "scripts/validate_completion_telemetry.py",

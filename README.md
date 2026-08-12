@@ -98,6 +98,10 @@ $goal-retrospective
 - Raw native spawn arguments and runtime `turn_context.payload.model` prove routing. The optional
   route-guard nonce is supplemental evidence; its absence alone does not block the Gate. A model
   mismatch still fails closed.
+- A historical missing/empty routing log may be recovered only by atomically revalidating durable
+  routing records against raw rollouts with `scripts/recover_model_routing.py`. Recovery supersedes
+  the old receipt and requires a newly issued completion receipt; it never grandfathers missing
+  evidence.
 - The normal Agent target is 8, soft limit 12, cumulative hard limit 20, maximum nesting depth 1, and at most 3 parallel Goal sessions.
 - Delivery runs through bounded 1–3 task execution windows selected from the dependency-ready queue; windows and checkpoints report progress without pausing safe in-scope work for routine feedback.
 - Each runnable stage ends with focused checks, an owned-file commit, verified push, and a fixed-denominator progress report.
