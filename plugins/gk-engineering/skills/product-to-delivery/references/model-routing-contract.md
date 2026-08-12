@@ -17,6 +17,14 @@ Thread names and agent roles do not prove model identity. The controller must:
    on the current model under `sol_route_fallback` when live capability evidence proves Sol
    unavailable.
 
+A route failure has task-local scope. The failed turn contributes no delivery evidence, but the
+Goal and original task remain active. Preserve the failure record and immediately hand the same task
+to another available model allowed for the task, or the current model, using the applicable audited
+fallback. A fallback turn must finish the task; reporting that the preferred call failed is not a
+completed fallback. Terra retains its bounded three-attempt rule, while Sol/Luna use their live
+selection/unavailability evidence. Do not terminally block the Goal merely because a model call,
+spawn, selection, or transition failed.
+
 Read [native-agent-routing.md](native-agent-routing.md) completely before using Codex native
 subagents. Native model overrides require `fork_turns: "none"` or a positive limited-history
 value. A full-history fork, Agent name, `agent_type`, role, prompt, or UI label is not model
@@ -175,6 +183,20 @@ turns and corresponding transition slot on the current model. Each substituted t
 complete role-specific fallback record with `write_allowed: false`. Terra Canary substitution still
 requires three raw failed Terra spawn attempts. An absent preferred role model by itself never
 blocks the Goal.
+
+The same-thread transition requirement does not require a runtime API that changes the model of an
+existing context. On a surface without per-turn model selection, reuse one persistent context for
+four consecutive turns. The actual model may remain constant: record the Terra slots normally when
+the context is Terra, and record unavailable Luna/Sol slots with `luna_route_fallback` and
+`sol_route_fallback`. Validation compares the normalized role sequence while raw rollout evidence
+continues to prove which model actually ran every turn. If Terra itself is unavailable, its slots
+use `terra_route_fallback` only after the required three raw attempts.
+
+Failure to issue a completion receipt because a Canary record is missing is a recoverable evidence
+state. Keep `GOAL_TARGET_VERIFIED` / `PROGRAM_TARGET_VERIFIED` and the runtime Goal active, append or
+rerun the missing same-candidate turns, then issue a new receipt. Never map missing Luna, missing
+per-turn transition support, an incomplete routing log, or a missing completion receipt to runtime Goal
+`blocked`; only a genuine external/product blocker may use that terminal state.
 
 Prefer a separate visible Codex task for Luna when that surface exposes the model. Otherwise use
 the current context under `luna_route_fallback`. A task named “Luna verifier” is not Luna evidence.

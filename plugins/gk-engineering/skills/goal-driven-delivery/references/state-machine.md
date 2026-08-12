@@ -16,6 +16,16 @@ Exceptional transitions:
 - `implemented/verified → stale` when a consumed artifact revision changes
 - `verified → stale` when its accepted evidence is invalidated, superseded, or its runtime provenance no longer identifies the verified target
 
+`blocked` is reserved for a genuine external/product blocker after the runtime repeated-blocker
+threshold is satisfied and no safe in-scope recovery remains. Controller-owned completion work is
+never such a blocker. In particular, missing Luna/Sol, missing per-turn model transition support,
+an incomplete routing log, or a missing completion receipt leaves the runtime Goal active and the
+durable state pre-terminal while fallback or same-candidate evidence recovery continues.
+
+A model call, spawn, selection, handshake, or transition failure updates only its attempt to a
+failed/quarantined outcome. The task returns to `ready` and is reassigned to another available or
+current model under audited fallback. It must not transition the runtime Goal to `blocked`.
+
 Only the controller changes task state. Executors report outcomes; they do not mark shared state complete.
 
 ## Gate states
@@ -43,3 +53,7 @@ Before a Goal transitions to `complete` or `blocked`, the controller captures a 
 `GOAL_TARGET_VERIFIED` and `PROGRAM_TARGET_VERIFIED` are verified pre-terminal states. The controller issues a completion receipt only while both states, the candidate, Profile, routing log, raw rollout files, telemetry, and optional integration manifest still match. The receipt records SHA-256 digests for every input. State-file digests normalize only the fields changed by the terminal transition; candidate, Profile, evidence, routing or other state changes still invalidate the receipt.
 
 Before transitioning either state to `COMPLETE`, revalidate the receipt against the current files, then persist the receipt path and digest in both states. Any changed or missing input invalidates the receipt and returns delivery to the relevant verification state. `COMPLETE` without a ready receipt is invalid for current schemas.
+
+A completion-transaction validation failure must not rewrite verified candidate truth or terminally
+block the runtime Goal. Preserve `GOAL_TARGET_VERIFIED` / `PROGRAM_TARGET_VERIFIED`, place the exact
+validator errors on the recovery queue, and retry only the missing evidence or receipt steps.

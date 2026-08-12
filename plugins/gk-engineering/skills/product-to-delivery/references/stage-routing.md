@@ -24,6 +24,7 @@
 | Plan `READINESS_BLOCKED` | Prefer Sol to gather missing technical evidence; if unavailable, current model continues under `sol_route_fallback` |
 | Plan `PLAN_REVIEW_REQUIRED` | wait for user approval |
 | Plan `PLAN_APPROVED`, Canary missing | run and verify Sol/Terra/Luna routing Canary; evidenced role-specific current-model fallback is non-blocking |
+| Preferred model call/spawn/selection fails | quarantine that attempt, preserve raw failure evidence, and continue the same task on another available/current model under the role-specific fallback |
 | Single-Goal plan approved, no active delivery | `goal-driven-delivery` |
 | Multi-Goal program approved | create one runtime Program Goal and `program-state.yaml`, then start bounded Goal sessions/worktrees by dependency wave |
 | Delivery active, local failure | Terra repair loop |
@@ -33,6 +34,7 @@
 | All Goals are `GOAL_TARGET_VERIFIED` | `integrate-goals` in a clean integration worktree |
 | Integrated target appears done | independent Terra or audited Terra-fallback exact-target acceptance; Sol only on allowed escalation |
 | Same-candidate completion receipt issued and revalidated | persist its digest, transition states to `COMPLETE`, then complete the runtime Program Goal |
+| `TARGET_VERIFIED`, completion receipt missing or invalid | keep the runtime Goal active and verified states pre-terminal; recover/rerun the missing same-candidate evidence, including current-model routing fallbacks |
 | Program Goal is `COMPLETE`, receipt captured, retrospective missing | invoke `goal-retrospective` once for the Program and write the auditable retrospective |
 | Retrospective write failed after valid completion | report `RETROSPECTIVE_PENDING` with the exact evidence gap and recovery action; do not rewrite Goal status |
 
@@ -56,3 +58,8 @@
 - Preferred model unavailability never blocks Goal work by itself. Preserve ownership and
   independence, use the current model, and record complete role-specific fallback evidence; Terra
   fallback additionally requires three failed raw route attempts.
+- Missing per-turn model transition support and a missing completion receipt are also non-terminal
+  recovery conditions. Never mark the runtime Goal `blocked` while the accepted candidate remains
+  `TARGET_VERIFIED`; keep it active until the fallback-backed receipt transaction completes.
+- A failed model invocation is never itself a Goal blocker. The fallback route must execute and
+  finish the original stage; recording or narrating the failure without continuing is invalid.

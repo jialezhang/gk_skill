@@ -30,12 +30,19 @@ Read these references completely before routing a stage:
     role-specific current-model fallback satisfies unavailable slots; Terra fallback additionally
     requires three failed raw route attempts. Do not block Goal delivery solely because a preferred
     role model is absent. Other unverified or mismatched routes still block their dependent evidence.
+    A failed model call invalidates only that call and its output: record the live failure, route the
+    same task to another available model (or the current model) under the role-specific fallback,
+    and continue the Goal. Never convert a model-call failure directly into Goal `blocked`.
 11. Create one runtime Program Goal and `program-state.yaml` before the first governed Goal starts. Keep it active across every milestone; do not complete or replace it when one Goal reaches `GOAL_TARGET_VERIFIED`.
 12. Invoke `$goal-driven-delivery` once per approved Goal. Keep one visible Program task by default; each Goal receives its own worktree, branch, state, checkpoint sequence, and internal model-routed context. Create another visible Codex task only when the required model is unavailable through native subagents, record `VISIBLE_MODEL_CONTEXT_REQUIRED`, and never use a task name as model evidence. One program controller owns the cross-Goal dependency graph, fixed progress denominators, Agent budget, candidate evidence, and coordination-wait accounting.
 13. When multiple Goals finish, invoke `$integrate-goals` to merge them in an integration worktree and verify a clean integration commit.
 14. Invoke `$review-delivery-gate` for governed evidence gates, final acceptance, and plan conflicts using the model-routing contract.
 15. If a PRD or plan revision invalidates approval, return to and complete the owning stage rather than patching around it.
 16. Before governed Program completion, keep the Program in `PROGRAM_TARGET_VERIFIED` and run `scripts/validate_completion_gate.py --receipt <completion-receipt.json>` from the plugin root against the project Profile, exact routing log, Goal delivery state, candidate evidence, Program state, and optional integration manifest. Revalidate the receipt, record its path/digest in both states, and only then transition to `COMPLETE`. Do not call the runtime completion tool unless this fail-closed transaction passes on the same candidate.
+    A missing completion receipt, missing preferred role model, unavailable per-turn model switch, or incomplete
+    routing evidence is recoverable controller work, not a terminal Goal blocker. Keep the runtime Goal active
+    and both durable states at their verified pre-terminal status while repairing or
+    rerunning only the missing evidence. Do not mark the runtime Goal `blocked` for these conditions.
 17. After the runtime Program Goal is marked complete, preserve the completion receipt with its immutable input digests plus the runtime Goal/thread identity, final status, `tokensUsed`, `timeUsedSeconds`, and timestamps. Invoke `$goal-retrospective` with that receipt plus the approved artifacts, delivery state, candidate evidence, Git/build/release identity, routing log, telemetry, and final acceptance evidence.
 18. Treat the retrospective as a required post-completion audit, never as acceptance evidence or a substitute for the completion gate. For a multi-Goal Program, generate one Program-level retrospective that accounts for every child Goal and invalid run. If evidence is unavailable, record it as unsampled or unverified; do not invent values or reverse an already valid completion. Report a failed document write as `RETROSPECTIVE_PENDING` with the exact recovery action.
 
@@ -87,6 +94,19 @@ failure, use the current model under the auditable fallback contract; never crea
 handshakes or an unbounded retry loop. Unknown task classes, unavailable raw rollout evidence for
 the model that actually executed work, and incomplete or forged routing records still block
 acceptance evidence.
+
+The transition Canary proves ordered role routing, not that the runtime implements an in-place
+model-switch API. If that API is absent, reuse one persistent context for four consecutive turns.
+Keep the actual current model unchanged and record each unavailable Sol or Luna slot with its
+role-specific fallback; the normalized sequence remains Terra → Luna → Sol → Terra. An absent
+per-turn switch therefore never justifies a runtime Goal `blocked` transition.
+
+For every routed stage, treat spawn rejection, selection rejection, route unavailability, and
+runtime model mismatch as route-local failures. Quarantine that attempt, preserve its raw evidence,
+then retry the work on another available model under `sol_route_fallback`,
+`luna_route_fallback`, or (after the bounded three-attempt policy) `terra_route_fallback`. The
+fallback model owns completion of the original task; it does not merely report the routing error.
+Only an independent external/product blocker with no safe fallback may stop Goal execution.
 
 Outside PRD and implementation-planning work, use a fresh reviewer context when independence matters. Sol is an escalation path, not the default verifier.
 

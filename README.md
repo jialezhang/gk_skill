@@ -93,6 +93,12 @@ $goal-retrospective
   `terra_route_fallback`; final acceptance still uses a fresh independent read-only reviewer.
 - Luna is preferred for routine checks and build/checklist review. If the active routing surface
   does not expose Luna, the current model continues under `luna_route_fallback`.
+- A runtime without per-turn model switching runs the transition Canary as four consecutive turns
+  in one persistent current-model context; unavailable role slots use audited fallbacks. Missing
+  Luna, transition switching, routing evidence, or a completion receipt keeps a verified Goal
+  active for recovery and never terminally marks it `blocked`.
+- Any failed model call is quarantined locally and the same work continues on another available or
+  current model under audited fallback. A routing failure by itself never stops the Goal.
 - Every browser interaction and browser evidence is produced exclusively through Ego Lite
   `ego-browser`, including fallback acceptance.
 - Raw native spawn arguments and runtime `turn_context.payload.model` prove routing. The optional

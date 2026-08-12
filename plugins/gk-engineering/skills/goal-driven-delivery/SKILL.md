@@ -81,6 +81,8 @@ The program owns one cumulative budget across all Goals: normal target 8, soft l
    the implementation threads. Every browser operation uses Ego Lite `ego-browser` exclusively.
    Sol escalation likewise uses `sol_route_fallback` when unavailable.
 9. Route results:
+   - model call/spawn/selection failure → quarantine only that attempt, record raw failure evidence,
+     and continue the same task on another available model through the applicable audited fallback;
    - local failure → same executor or debugger;
    - cross-module integration failure → integration executor;
    - plan contradiction → pause affected tasks and invoke `$review-delivery-gate` with a Sol escalation packet; if Sol is unavailable, keep the current model and attach `sol_route_fallback` evidence;
@@ -147,6 +149,13 @@ expose them. Reuse the verified Terra context while its model, Goal, and worktre
   Canary, handshake, execution reconciliation, or independent final acceptance turn.
 - If the Goal remains active and safe work remains, continue; do not stop at a narrative checkpoint.
 - Mark blocked only after the applicable Goal policy and repeated-blocker threshold are satisfied.
+- Completion-administration gaps are not eligible blockers. A missing completion receipt, routing
+  record, preferred role model, or per-turn transition capability keeps the runtime Goal active at
+  the verified pre-terminal state. Use the documented current-model Canary fallback or rerun the
+  missing same-candidate evidence; do not call the runtime Goal `blocked` transition.
+- A model invocation failure is likewise not eligible. Another available/current model must take
+  over and finish the original work under audited fallback; do not stop after merely recording the
+  failed invocation.
 
 ## Completion
 

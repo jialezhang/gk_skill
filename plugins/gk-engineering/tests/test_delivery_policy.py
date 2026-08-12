@@ -528,6 +528,49 @@ class DeliveryGovernanceTextTests(unittest.TestCase):
             self.assertIn("sol_route_fallback", text, relative)
             self.assertIn("current model", text, relative)
 
+    def test_completion_evidence_gaps_never_terminally_block_verified_goal(self) -> None:
+        controller = (SKILL_ROOT / "product-to-delivery" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        delivery = (SKILL_ROOT / "goal-driven-delivery" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        state_machine = (
+            SKILL_ROOT / "goal-driven-delivery" / "references" / "state-machine.md"
+        ).read_text(encoding="utf-8")
+        routing = (
+            SKILL_ROOT
+            / "product-to-delivery"
+            / "references"
+            / "model-routing-contract.md"
+        ).read_text(encoding="utf-8")
+
+        for text in (controller, delivery, state_machine, routing):
+            self.assertIn("missing completion receipt", text)
+            self.assertIn("runtime Goal active", text)
+        self.assertIn("per-turn model selection", routing)
+        self.assertIn("actual model may remain constant", routing)
+
+    def test_failed_model_call_routes_same_task_to_another_model(self) -> None:
+        controller = (SKILL_ROOT / "product-to-delivery" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        delivery = (SKILL_ROOT / "goal-driven-delivery" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        routing = (
+            SKILL_ROOT
+            / "product-to-delivery"
+            / "references"
+            / "model-routing-contract.md"
+        ).read_text(encoding="utf-8")
+
+        for text in (controller, delivery, routing):
+            self.assertIn("same task", text)
+            self.assertIn("another available model", text)
+            self.assertIn("continue", text)
+        self.assertIn("reporting that the preferred call failed is not", routing)
+
     def test_plan_consumes_scope_and_defines_goal_isolation(self) -> None:
         text = (SKILL_ROOT / "create-implementation-plan" / "SKILL.md").read_text(encoding="utf-8")
         for required in (

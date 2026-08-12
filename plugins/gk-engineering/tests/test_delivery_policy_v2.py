@@ -387,6 +387,77 @@ class ModelHandshakeTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_transition_canary_needs_no_per_turn_model_switch_api(self) -> None:
+        records: list[dict[str, object]] = []
+        for phase in ("initial", "followup"):
+            records.extend(
+                [
+                    routing_record(
+                        f"canary-terra-{phase}",
+                        "routing_canary",
+                        "gpt-5.6-terra",
+                        thread_id="persistent-current-context",
+                        phase=phase,
+                    ),
+                    luna_fallback_record(
+                        f"canary-luna-fallback-{phase}",
+                        "routing_canary",
+                        current_model="gpt-5.6-terra",
+                        thread_id="persistent-current-context",
+                        phase=phase,
+                    ),
+                    sol_fallback_record(
+                        f"canary-sol-fallback-{phase}",
+                        "routing_canary",
+                        current_model="gpt-5.6-terra",
+                        thread_id="persistent-current-context",
+                        phase=phase,
+                    ),
+                ]
+            )
+
+        transition_records = [
+            routing_record(
+                "transition-no-switch-1",
+                "routing_transition",
+                "gpt-5.6-terra",
+                thread_id="persistent-current-context",
+                phase="transition",
+                sequence_index=1,
+            ),
+            luna_fallback_record(
+                "transition-no-switch-2",
+                "routing_transition",
+                current_model="gpt-5.6-terra",
+                thread_id="persistent-current-context",
+                phase="transition",
+                sequence_index=2,
+            ),
+            sol_fallback_record(
+                "transition-no-switch-3",
+                "routing_transition",
+                current_model="gpt-5.6-terra",
+                thread_id="persistent-current-context",
+                phase="transition",
+                sequence_index=3,
+            ),
+            routing_record(
+                "transition-no-switch-4",
+                "routing_transition",
+                "gpt-5.6-terra",
+                thread_id="persistent-current-context",
+                phase="transition",
+                sequence_index=4,
+            ),
+        ]
+
+        result = self.validate(
+            records + transition_records,
+            "--require-canary",
+            "--require-transition-canary",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_main_agent_continues_with_current_model_when_terra_switch_fails(self) -> None:
         fallback = routing_record(
             "implementation-fallback-1",
