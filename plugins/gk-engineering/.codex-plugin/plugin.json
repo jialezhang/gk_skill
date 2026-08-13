@@ -1,6 +1,6 @@
 {
   "name": "gk-engineering",
-  "version": "0.2.6+codex.20260812190429",
+  "version": "0.2.7+codex.20260813210740",
   "description": "Project-agnostic delivery with bounded autonomous execution windows, evidence-calibrated estimates, declarative safety profiles, audited model routing, fail-closed completion receipts, and Goal retrospectives.",
   "author": {
     "name": "jialezhang"

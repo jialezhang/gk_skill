@@ -14,6 +14,7 @@ EXPECTED_SKILLS = {
     "commit-push-lore",
     "merge-push-primary",
     "sync-worktrees-primary",
+    "yunzhuan-deploy-aliyun",
     "product-to-delivery",
     "create-product-prd",
     "assess-goal-scope",
@@ -197,6 +198,7 @@ def main() -> int:
         [sys.executable, str(plugin_root / "tests" / "test_delivery_policy.py")],
         [sys.executable, str(plugin_root / "tests" / "test_delivery_policy_v2.py")],
         [sys.executable, str(plugin_root / "tests" / "test_generic_delivery_contract.py")],
+        [sys.executable, str(plugin_root / "tests" / "test_yunzhuan_deploy_aliyun_skill.py")],
     ]
     for command in checks:
         result = subprocess.run(command, text=True, capture_output=True)
