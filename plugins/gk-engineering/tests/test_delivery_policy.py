@@ -627,6 +627,32 @@ class DeliveryGovernanceTextTests(unittest.TestCase):
         self.assertIn("integration worktree", text)
         self.assertIn("clean commit", text)
 
+    def test_commit_workflow_never_discards_new_or_uncommitted_code(self) -> None:
+        text = (SKILL_ROOT / "commit-push-lore" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("Never delete, revert, reset, or check out over new or uncommitted code", text)
+        self.assertIn("leave it unstaged and report it", text)
+
+    def test_merge_workflows_preserve_new_behavior_from_every_parent(self) -> None:
+        primary = (SKILL_ROOT / "merge-push-primary" / "SKILL.md").read_text(encoding="utf-8")
+        for required in (
+            "both pre-merge tips",
+            "Do not resolve a whole conflicted file with `ours` or `theirs`",
+            "new or changed tests",
+            "Passing tests alone are not sufficient",
+            "Conflict ledger",
+            "explicit user instruction or approved repository requirement",
+            "do not invoke `commit-push-lore` automatically",
+            "git merge --no-ff --no-commit <recorded-source-head>",
+            "git merge-base --is-ancestor <recorded-source-head> HEAD",
+        ):
+            self.assertIn(required, primary)
+        self.assertNotIn("unless a line-by-line audit", primary)
+
+        for relative in ("sync-worktrees-primary/SKILL.md", "integrate-goals/SKILL.md"):
+            text = (SKILL_ROOT / relative).read_text(encoding="utf-8")
+            self.assertIn("REQUIRED SUB-SKILL", text, relative)
+            self.assertIn("conflict-preservation rules from `merge-push-primary`", text, relative)
+
 
 class DeliveryStatePolicyTests(unittest.TestCase):
     def _validate(self, state: str) -> subprocess.CompletedProcess[str]:

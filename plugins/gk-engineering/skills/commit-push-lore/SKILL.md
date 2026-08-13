@@ -10,7 +10,7 @@ Commit only the intended work and push the current branch by default. Preserve u
 ## Workflow
 
 1. Inspect `git rev-parse --show-toplevel`, `git status --short`, `git branch --show-current`, the upstream, and `git remote -v`.
-2. Identify the requested file scope. Split only obviously independent file groups; leave unrelated changes unstaged.
+2. Identify the requested file scope. Inventory every new, modified, deleted, and untracked path before staging. Never delete, revert, reset, or check out over new or uncommitted code. If ownership or scope is unclear, leave it unstaged and report it.
 3. Reuse verification already run for the exact changes, or run the smallest meaningful check when none exists.
 4. Stage explicit paths. Never use `git add .` or `git add -A` in a dirty tree.
 5. Review `git diff --cached --stat`, `git diff --cached --check`, and `git status --short`. Commit only when the staged scope is correct.
@@ -32,6 +32,6 @@ Add `Constraint:`, `Rejected:`, `Confidence:`, `Scope-risk:`, `Reversibility:`, 
 
 ## Boundaries
 
-- Do not switch branches, merge branches, force-push, stash, discard, or stage unrelated work.
+- Do not switch branches, merge branches, force-push, stash, discard, or stage unrelated work. A commit request never authorizes removing code that is outside the intended commit.
 - Do not claim a clean tree when unrelated changes remain.
 - If the user asks to merge into the primary branch, hand off to `merge-push-primary` after the source work is committed.
