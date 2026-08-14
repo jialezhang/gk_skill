@@ -18,7 +18,10 @@ def main() -> int:
     transfer = (SKILL_ROOT / "references" / "artifact-transfer.md").read_text(
         encoding="utf-8"
     )
-    all_text = skill + reference + readiness + transfer
+    vmdeploy = (SKILL_ROOT / "references" / "vmdeploy-job.md").read_text(
+        encoding="utf-8"
+    )
+    all_text = skill + reference + readiness + transfer + vmdeploy
 
     required_jobs = {
         "quality",
@@ -45,6 +48,14 @@ def main() -> int:
         "sudo -u ecs-user -H",
         "verify-aliyun-runtime.sh",
         "/proc/<pid>/cwd",
+        "VMDeploy",
+        "video2-production",
+        "video2prod",
+        "26793",
+        "i-bp11prwf96sm8jc0agfu",
+        "$[stages.verify_stage.build_release_job.upload_pending.artifacts.video2-${TARGET_SHA}]",
+        "executeUser: ecs-user",
+        "Browserless deployment verified",
     }
     missing_contracts = sorted(item for item in required_contracts if item not in all_text)
     assert not missing_contracts, f"missing deployment contracts: {missing_contracts}"
@@ -77,9 +88,15 @@ def main() -> int:
     assert "present" in skill
     assert "root" in skill
     assert "基础设施失败" in skill and "代码失败" in skill
-    assert "通用 Theia" in skill and "文件任务中心" in transfer
+    assert "通用 Theia" in transfer and "文件任务中心" in transfer
     assert "浏览器 Cookie" in transfer
     assert "data/" in reference and "storage/" in reference and ".env" in reference
+    assert "普通部署禁止使用 Workbench" in skill
+    assert "不得打开 Workbench" in transfer
+    assert "失败关闭" in skill and "失败关闭" in vmdeploy
+    assert "只有前两条暂不可用时，才使用 Workbench" not in all_text
+    assert "Workbench 文件任务中心：仅作临时 fallback" not in all_text
+    assert ".artifacts.default" not in all_text
     print("OK: yunzhuan-deploy-aliyun skill contracts")
     return 0
 

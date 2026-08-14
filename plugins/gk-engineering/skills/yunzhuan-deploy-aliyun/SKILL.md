@@ -12,7 +12,8 @@ description: 通过云效 Flow 公共构建集群的并行质量门禁，将 Vid
 - Video2 根目录：`/Users/gkjiale/aigc/video2`
 - GitHub 仓库：`git@github.com:jialezhang/video2.git`
 - Codeup 镜像：`https://jingzhun-cn-hangzhou.devops.aliyuncs.com/codeup/video2.git`
-- 云效流水线：`video2-ci-<TARGET_SHA_SHORT>`；复用已有流水线时先核对其 YAML 与本技能一致。
+- 云效流水线：固定复用 Flow `1441793`，显示名可随候选 SHA 更新为 `video2-ci-<TARGET_SHA_SHORT>`；不得新建或复用缺少下述 `VMDeploy` Job 的旧流水线。
+- 云效主机组：`video2-production`；`machineGroup` UUID 为 `video2prod`，控制台数字 ID 为 `26793`，唯一机器为 `i-bp11prwf96sm8jc0agfu`。
 - ECS 根目录：`/opt/video2`
 - ECS 服务用户：`ecs-user`；必须复用 `/home/ecs-user/.pm2`，不得以 `root` 启动 Video2 PM2 应用。
 - 公网入口：`https://47.98.184.79/`
@@ -30,6 +31,7 @@ description: 通过云效 Flow 公共构建集群的并行质量门禁，将 Vid
 3. 云效公共 Alinux 3 环境使用平台的 `python38` 运行时，并断言 Node 22、Python 不低于 3.8、`make` 和 C/C++ 编译器可用。默认 Python 3.6 不能作为 `node-gyp` 回退环境。
 4. 使用 npm 的 portable FFmpeg/FFprobe 包，不依赖公共执行器的交互式 `sudo` 或不稳定系统仓库。
 5. 保存流水线后重新读取已持久化 YAML，核对源 ref、完整 `TARGET_SHA`、七路 DAG、`publish-verified` 依赖和运行时选择。页面标题或旧缓存名称不构成配置证据。
+6. 同时断言持久化 YAML 含 `deploy_job`、`component: VMDeploy`、精确制品引用、`machineGroup: video2prod`、`executeUser: ecs-user` 和运行时验收命令，并确认 `video2-production` 的 Runner 为 `ok`、机器安装状态为 `Finished`。缺一项就停止；不得在普通部署中转用浏览器传包。
 
 任何预检失败都先归类为基础设施故障并修复环境；不要启动完整测试矩阵来重复制造同一失败。
 
@@ -80,20 +82,26 @@ description: 通过云效 Flow 公共构建集群的并行质量门禁，将 Vid
 
 ## 4. 部署到 ECS
 
-部署前完整读取 [可信制品传输](references/artifact-transfer.md)。传输通道按以下顺序选择：
+部署前完整读取 [无浏览器可信制品传输](references/artifact-transfer.md) 和 [VMDeploy Job 契约](references/vmdeploy-job.md)。普通部署只有一条合法路径：
 
-1. 优先让 `deploy needs [publish-verified]` 通过云效主机部署/部署组直接下发到 ECS；这是常态路径，不应依赖本地浏览器下载再上传。
-2. 部署组尚未配置时，优先使用阿里云云助手把 verified prebuilt artifact 放入 ECS 的 run-scoped staging 目录。
-3. 只有前两条暂不可用时，才使用 Workbench 专用“文件任务中心”上传链路。必须看到 OSS 上传完成、ECS `curl` 接收字节数与本地文件大小一致，并在 ECS 终端重新校验 checksum。不得把通用 Theia 隐藏文件控件、`file:///tmp/...` 返回值、文件选择框里的文件名或浏览器下载完成当成 ECS 已收到文件。
-4. 不得把浏览器 Cookie、Bearer Token 或 Packages 登录态复制进 ECS 命令。Packages 的认证内容 URL 在 ECS 上可能返回登录 HTML；任何尺寸异常、格式不符或 checksum 不匹配的下载都立即作废并删除。
-5. 校验 checksum、压缩格式、`.video2-build-commit` 和 `dist/app/index.html` 后再解包。Packages 下载结果可能是外层包装包；先定位并核对其中唯一的 Release tar 与 checksum，不要把包装包直接当 Release。
-6. 不要在 ECS 重新构建其他代码。确需 Codeup 临时读取能力时：
+```text
+publish-verified → VMDeploy → video2-production/video2prod → ecs-user 发布与验收
+```
+
+1. `deploy_job` 必须 `needs [publish_verified_job]`，由云效 `VMDeploy` 直接把本次 Packages 包装制品下发至 run-scoped `/tmp` 路径。固定使用 `machineGroup: video2prod` 和 `executeUser: ecs-user`。
+2. 制品引用必须是 `$[stages.verify_stage.build_release_job.upload_pending.artifacts.video2-${TARGET_SHA}]`。云效配置校验未通过、引用不存在、主机组非 `ok`、机器忙或直接下发失败时，将本次发布标记为基础设施阻塞并停止。
+3. **普通部署禁止使用 Workbench、浏览器上传、浏览器下载后再上传、Cloud Assistant 或复制登录态作为自动 fallback。** 禁止在失败后静默改走这些路线并声称部署完成。
+4. 只有用户在看到直接路径的具体阻塞证据后，明确授权“本次紧急恢复”时，才可单次使用独立应急通道。应急结果必须标成例外，不能修改本技能的默认路径，也不能作为自动化完成证据。
+5. 失败关闭是默认行为：直接路径没有满足契约时，本次部署结果只能是 `blocked`，不能是浏览器 fallback 后的 `complete`。
+6. 不得把浏览器 Cookie、Bearer Token 或 Packages 登录态复制进 ECS 命令。Packages 的认证内容 URL 在 ECS 上可能返回登录 HTML；任何尺寸异常、格式不符或 checksum 不匹配的下载都立即作废并删除。
+7. 校验 checksum、压缩格式、`.video2-build-commit` 和 `dist/app/index.html` 后再解包。Packages 下载结果是外层包装包；要求其中恰好有一个 Release tar 与一个配套 checksum，不要把包装包直接当 Release。
+8. 不要在 ECS 重新构建其他代码。确需 Codeup 临时读取能力时：
    - 创建只读、一次性 Deploy Key；
    - 只为 ECS 公网 IP 临时放行 Codeup；
    - 完成或失败后移除 Deploy Key、ECS 私钥/公钥、临时源码目录并关闭临时白名单。
-7. 部署前检查运行中任务数；运行时不空闲则等待，不得强制切换。
-8. 盘点 `/opt/video2`、目标 Release、共享 `.env`、业务数据库与日志目录的 owner/mode。不得修改受保护数据。
-9. 始终以线上服务用户执行发布：
+9. 部署前检查运行中任务数；运行时不空闲则等待，不得强制切换。
+10. 盘点 `/opt/video2`、目标 Release、共享 `.env`、业务数据库与日志目录的 owner/mode。不得修改受保护数据。
+11. 始终以线上服务用户执行发布：
 
    ```bash
    sudo -u ecs-user -H env \
@@ -104,8 +112,8 @@ description: 通过云效 Flow 公共构建集群的并行质量门禁，将 Vid
        "$TARGET_SHA" "$STAGING_DIR" prebuilt
    ```
 
-10. 将部署 stdout/stderr 保存到与 `TARGET_SHA` 绑定的日志，再向控制台输出短尾部摘要。部署脚本失败时必须自动恢复上一 Release；不要手工拼凑半成功状态。
-11. 不以 `root` 调用 Release 内的 PM2。若发现 `/root/.pm2`，先证明其中没有 Video2 进程，再只清理该错误 PM2 实例的 Video2 状态。
+12. 将部署 stdout/stderr 保存到与 `TARGET_SHA` 绑定的日志，再向控制台输出短尾部摘要。部署脚本失败时必须自动恢复上一 Release；不要手工拼凑半成功状态。
+13. 不以 `root` 调用 Release 内的 PM2。若发现 `/root/.pm2`，先证明其中没有 Video2 进程，再只清理该错误 PM2 实例的 Video2 状态。
 
 ## 5. 验证真实运行身份
 
@@ -142,7 +150,7 @@ PID 在健康检查过程中变化、cwd 不匹配、内部请求失败或公网
    - 内部与公网 HTTP 状态；
    - 整体墙钟时间和最终成功链路时间；
    - 并行门禁墙钟时间与累计核分口径的区别；
-   - 实际制品传输通道，以及部署组自动化是否仍待配置；
+   - `VMDeploy`、`video2prod` 与 ECS Runner 的实际结果；如直接路径阻塞，明确说明本次没有部署且没有转用浏览器；
    - `present` 是否未变化；
    - 临时权限清理结果与未处理风险。
 

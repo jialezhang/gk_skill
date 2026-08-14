@@ -28,9 +28,12 @@ publish-verified needs [quality, test-1, test-2, test-3, test-4, test-media, bui
                          │
                          ▼
 deploy needs [publish-verified]
+        │
+        ▼
+VMDeploy → video2-production / video2prod → ecs-user runtime verification
 ```
 
-不要在七个验证 Job 之间建立串行依赖。仅 `publish-verified` 汇合所有结果，`deploy` 再依赖可信制品晋级。
+不要在七个验证 Job 之间建立串行依赖。仅 `publish-verified` 汇合所有结果，`deploy_job` 再依赖可信制品晋级。部署必须使用 `component: VMDeploy`、`machineGroup: video2prod` 和 `executeUser: ecs-user`；完整 Job 见 [VMDeploy Job 契约](vmdeploy-job.md)。
 
 若当前公共集群最大并发为 3，保留七个 Job；平台会先运行三个并在空闲后补位。这样仍比一个串行 Job 更快，也保持每个门禁可独立观察和重跑。
 
@@ -167,7 +170,7 @@ test -f "$staging/dist/app/index.html"
 
 不要在 `set -o pipefail` 下使用 `tar -tzf ... | grep -q`；`grep` 提前退出可能让 `tar` 因 SIGPIPE 返回失败。先完整生成清单再检查。
 
-晋级记录至少绑定：`RUN_ID`、`TARGET_SHA`、artifact 名称、SHA-256、七个 Job 的 success 状态。只有该记录存在时，部署步骤才能取得制品。
+晋级记录至少绑定：`RUN_ID`、`TARGET_SHA`、artifact 名称、SHA-256、七个 Job 的 success 状态。只有该记录存在时，部署步骤才能取得制品。当前 `ArtifactUpload` 的部署引用固定为 `$[stages.verify_stage.build_release_job.upload_pending.artifacts.video2-${TARGET_SHA}]`；云效编辑器必须校验通过，不能改用不存在的平台默认输出键。
 
 若 Packages 下载结果是包含 Release tar 与 checksum 的外层包装包，先解开包装包再执行上述校验；不要对包装包本身读取 `.video2-build-commit`。
 

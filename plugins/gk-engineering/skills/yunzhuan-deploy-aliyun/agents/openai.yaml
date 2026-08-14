@@ -1,4 +1,4 @@
 interface:
   display_name: "云转部署阿里云"
-  short_description: "通过云效并行质量门禁安全部署 Video2 到阿里云 ECS"
-  default_prompt: "Use $yunzhuan-deploy-aliyun to verify and deploy an immutable Video2 release through Yunxiao parallel gates to Aliyun ECS."
+  short_description: "通过云效并行门禁和 VMDeploy 无浏览器部署 Video2"
+  default_prompt: "Use $yunzhuan-deploy-aliyun to verify and deploy an immutable Video2 release through Yunxiao parallel gates and the fixed VMDeploy host group, without browser artifact transfer."
