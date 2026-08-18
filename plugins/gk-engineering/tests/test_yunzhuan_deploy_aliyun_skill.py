@@ -56,6 +56,9 @@ def main() -> int:
         "$[stages.verify_stage.build_release_job.upload_pending.artifacts.video2-${TARGET_SHA}]",
         "executeUser: ecs-user",
         "Browserless deployment verified",
+        "exec /bin/bash <<'VIDEO2_DEPLOY_BASH'",
+        "VIDEO2_DEPLOY_BASH",
+        "src/**/storage/",
     }
     missing_contracts = sorted(item for item in required_contracts if item not in all_text)
     assert not missing_contracts, f"missing deployment contracts: {missing_contracts}"
@@ -63,18 +66,22 @@ def main() -> int:
     incident_contracts = {
         "116.62.173.28",
         "47.96.173.226",
+        "47.98.184.79",
+        "ecs-codeup-video2",
         "代码管理",
         "制品仓库",
         "python38",
         "@ffmpeg-installer/linux-x64@4.1.0",
         "@ffprobe-installer/linux-x64@5.2.0",
         "源码树之外",
-        "部署组",
         "OSS→ECS curl",
         "file:///tmp/<name>",
         "Bearer Token",
         "登录 HTML",
         "ECS 终端",
+        "video2-yunxiao-token",
+        "RetryPipelineJobRun",
+        "单层 JSON 字符串",
     }
     missing_incident_contracts = sorted(
         item for item in incident_contracts if item not in all_text
@@ -91,12 +98,16 @@ def main() -> int:
     assert "通用 Theia" in transfer and "文件任务中心" in transfer
     assert "浏览器 Cookie" in transfer
     assert "data/" in reference and "storage/" in reference and ".env" in reference
+    assert "^(\\./)?(" in reference and "^(\\./)?(" in vmdeploy
+    assert "(^|/)(\\.env|data/|storage/" not in reference
+    assert "(^|/)(\\.env|data/|storage/" not in vmdeploy
     assert "普通部署禁止使用 Workbench" in skill
     assert "不得打开 Workbench" in transfer
     assert "失败关闭" in skill and "失败关闭" in vmdeploy
     assert "只有前两条暂不可用时，才使用 Workbench" not in all_text
     assert "Workbench 文件任务中心：仅作临时 fallback" not in all_text
     assert ".artifacts.default" not in all_text
+    assert "同 SHA 最多一次有证据的重试" not in all_text
     print("OK: yunzhuan-deploy-aliyun skill contracts")
     return 0
 

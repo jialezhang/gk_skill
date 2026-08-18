@@ -157,7 +157,7 @@ tar -tzf "video2-${RUN_ID}-${TARGET_SHA}.tar.gz" > "$inventory"
 
 grep -Fxq './.video2-build-commit' "$inventory"
 grep -Fxq './dist/app/index.html' "$inventory"
-if grep -Eq '(^|/)(\.env|data/|storage/|.*\.sqlite([.-]|$)|id_(rsa|ed25519))' "$inventory"; then
+if grep -Eq '^(\./)?(\.env($|\.[^/]+$|/)|data/|storage/|[^/]*\.sqlite([.-][^/]*)?$|id_(rsa|ed25519)($|/))' "$inventory"; then
   echo 'Protected state or credentials found in artifact' >&2
   exit 65
 fi
@@ -174,6 +174,8 @@ test -f "$staging/dist/app/index.html"
 
 若 Packages 下载结果是包含 Release tar 与 checksum 的外层包装包，先解开包装包再执行上述校验；不要对包装包本身读取 `.video2-build-commit`。
 
+受保护状态只按 Release 根目录判断。`src/**/storage/`、依赖包内的 `data/` 等代码路径不是线上共享状态；不要使用 `(^|/)data/` 或 `(^|/)storage/` 这类任意层级匹配。修改表达式后，用真实制品 inventory 证明允许代码目录，再用 `.env`、`data/`、`storage/`、SQLite 和 `id_ed25519` 的根目录样例证明仍会阻止敏感内容。
+
 ## 5. 并发、超时与计费
 
 - 从“Flow → 资源用量”读取当前组织的最大公共任务并发数。不要根据套餐宣传页猜测实际配额。
@@ -181,4 +183,5 @@ test -f "$staging/dist/app/index.html"
 - 公共集群按任务实际运行的 CPU 核数 × 分钟计核分。并行主要缩短墙钟时间，不会自动减少累计核分；独立 `npm ci` 可能略微增加核分。
 - Job 排队时间不应记为构建核分，但必须计入整体发布墙钟时间。
 - 初始超时建议：quality 15 分钟、普通 shard 各 30 分钟、media 20 分钟、build 15 分钟、publish 5 分钟。根据连续成功运行的 P95 调整，不要统一放大到 90 分钟。
+- 单个测试分片的孤立时序断言只有在同一 SHA、同一命令已有成功 run，且失败日志显示其余测试通过时，才允许一次原命令复核。不得通过增加 sleep、修改预期或 `continueOnFail` 把波动隐藏掉；复核再次失败就停止并按代码问题处理。
 - 同一基础设施原因连续失败三次时停止剩余矩阵，诊断公共故障；不要继续消耗核分制造重复证据。

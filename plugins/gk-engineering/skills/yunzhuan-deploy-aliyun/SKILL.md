@@ -26,12 +26,12 @@ description: 通过云效 Flow 公共构建集群的并行质量门禁，将 Vid
 
 完整读取 [云效环境预检](references/yunxiao-readiness.md)。启动七路矩阵前先完成以下检查：
 
-1. 核对 Codeup 白名单同时覆盖公共执行器当前出口 IP，应用范围仅包含“代码管理”和“制品仓库”；不要选择全部应用，也不要假设上一次 IP 永久不变。
+1. 核对公共执行器与 ECS 的精确出口 IP 分属独立白名单组，组均已启用，应用范围仅包含“代码管理”和“制品仓库”；不要选择全部应用，也不要假设上一次 IP 永久不变。
 2. 分别证明公共执行器能够读取精确 Codeup ref，并能够向 run-scoped Packages 路径上传和读取探针；探针验证后只删除该探针。
 3. 云效公共 Alinux 3 环境使用平台的 `python38` 运行时，并断言 Node 22、Python 不低于 3.8、`make` 和 C/C++ 编译器可用。默认 Python 3.6 不能作为 `node-gyp` 回退环境。
 4. 使用 npm 的 portable FFmpeg/FFprobe 包，不依赖公共执行器的交互式 `sudo` 或不稳定系统仓库。
 5. 保存流水线后重新读取已持久化 YAML，核对源 ref、完整 `TARGET_SHA`、七路 DAG、`publish-verified` 依赖和运行时选择。页面标题或旧缓存名称不构成配置证据。
-6. 同时断言持久化 YAML 含 `deploy_job`、`component: VMDeploy`、精确制品引用、`machineGroup: video2prod`、`executeUser: ecs-user` 和运行时验收命令，并确认 `video2-production` 的 Runner 为 `ok`、机器安装状态为 `Finished`。缺一项就停止；不得在普通部署中转用浏览器传包。
+6. 同时断言持久化 YAML 含 `deploy_job`、`component: VMDeploy`、精确制品引用、`machineGroup: video2prod`、`executeUser: ecs-user`、显式 `/bin/bash` 包装、Release 根目录受保护状态检查和运行时验收命令，并确认 `video2-production` 的 Runner 为 `ok`、机器安装状态为 `Finished`。缺一项就停止；不得在普通部署中转用浏览器传包。
 
 任何预检失败都先归类为基础设施故障并修复环境；不要启动完整测试矩阵来重复制造同一失败。
 
@@ -78,7 +78,8 @@ description: 通过云效 Flow 公共构建集群的并行质量门禁，将 Vid
 3. 将校验后的制品标记为 verified，并记录云效 run 链接、run ID、目标 SHA、checksum 和各 Job 结果。
 4. 任一门禁失败时，禁止发布并只清理该 run 的 pending artifact。不要清理整个制品根目录。
 5. 先区分基础设施失败与代码失败：clone 白名单、Packages 权限、Python/编译器和媒体二进制属于基础设施；typecheck、测试、构建和设计系统检查属于代码。不得通过改弱命令、跳过测试或放宽设计门禁把代码失败伪装成基础设施修复。
-6. 同一冻结 SHA 的基础设施故障只允许一次有证据的修复重试。代码失败默认只允许一个修复后继：提交最小代码修复、冻结新的 SHA、推送新的精确 Codeup ref，并重新运行全部门禁；第二个候选仍失败时停止。
+6. 不得对同一根因无修改地重复运行。每次基础设施重试必须先取得新的直接证据并修复该层故障；后续阶段暴露的不同根因可以继续修复。优先只重试失败 Job；区域 PAT API 不支持目标操作时才重跑完整矩阵，并记录额外核分。代码失败默认只允许一个修复后继：提交最小代码修复、冻结新的 SHA、推送新的精确 Codeup ref，并重新运行全部门禁。
+7. 同一 SHA 的单个时序断言只在已有至少一次同命令成功证据、日志显示其余用例通过且失败与资源时序一致时，允许一次不改门禁的复核。复核仍失败就按代码失败处理；不得增加 sleep、放宽断言或使用 `continueOnFail`。
 
 ## 4. 部署到 ECS
 
@@ -90,18 +91,20 @@ publish-verified → VMDeploy → video2-production/video2prod → ecs-user 发�
 
 1. `deploy_job` 必须 `needs [publish_verified_job]`，由云效 `VMDeploy` 直接把本次 Packages 包装制品下发至 run-scoped `/tmp` 路径。固定使用 `machineGroup: video2prod` 和 `executeUser: ecs-user`。
 2. 制品引用必须是 `$[stages.verify_stage.build_release_job.upload_pending.artifacts.video2-${TARGET_SHA}]`。云效配置校验未通过、引用不存在、主机组非 `ok`、机器忙或直接下发失败时，将本次发布标记为基础设施阻塞并停止。
-3. **普通部署禁止使用 Workbench、浏览器上传、浏览器下载后再上传、Cloud Assistant 或复制登录态作为自动 fallback。** 禁止在失败后静默改走这些路线并声称部署完成。
-4. 只有用户在看到直接路径的具体阻塞证据后，明确授权“本次紧急恢复”时，才可单次使用独立应急通道。应急结果必须标成例外，不能修改本技能的默认路径，也不能作为自动化完成证据。
-5. 失败关闭是默认行为：直接路径没有满足契约时，本次部署结果只能是 `blocked`，不能是浏览器 fallback 后的 `complete`。
-6. 不得把浏览器 Cookie、Bearer Token 或 Packages 登录态复制进 ECS 命令。Packages 的认证内容 URL 在 ECS 上可能返回登录 HTML；任何尺寸异常、格式不符或 checksum 不匹配的下载都立即作废并删除。
-7. 校验 checksum、压缩格式、`.video2-build-commit` 和 `dist/app/index.html` 后再解包。Packages 下载结果是外层包装包；要求其中恰好有一个 Release tar 与一个配套 checksum，不要把包装包直接当 Release。
-8. 不要在 ECS 重新构建其他代码。确需 Codeup 临时读取能力时：
+3. `VMDeploy` 会用 `/bin/sh` 启动 `run`。若命令含 `pipefail`、`[[`、数组、`mapfile` 或进程替换，必须把整个脚本包在 `exec /bin/bash <<'VIDEO2_DEPLOY_BASH' ... VIDEO2_DEPLOY_BASH` 中；仅写 `set -Eeuo pipefail` 会在业务命令前失败。
+4. 制品清单的敏感路径检查只匹配 Release 根目录的 `.env*`、`data/`、`storage/`、SQLite 和 SSH 私钥。不得用 `(^|/)data/` 或 `(^|/)storage/`，否则会误杀 `src/**/storage/` 和依赖内的 `data/`。
+5. **普通部署禁止使用 Workbench、浏览器上传、浏览器下载后再上传、Cloud Assistant 或复制登录态作为自动 fallback。** 禁止在失败后静默改走这些路线并声称部署完成。
+6. 只有用户在看到直接路径的具体阻塞证据后，明确授权“本次紧急恢复”时，才可单次使用独立应急通道。应急结果必须标成例外，不能修改本技能的默认路径，也不能作为自动化完成证据。
+7. 失败关闭是默认行为：直接路径没有满足契约时，本次部署结果只能是 `blocked`，不能是浏览器 fallback 后的 `complete`。
+8. 不得把浏览器 Cookie、Bearer Token 或 Packages 登录态复制进 ECS 命令。Packages 的认证内容 URL 在 ECS 上可能返回登录 HTML；任何尺寸异常、格式不符或 checksum 不匹配的下载都立即作废并删除。
+9. 校验 checksum、压缩格式、`.video2-build-commit` 和 `dist/app/index.html` 后再解包。Packages 下载结果是外层包装包；要求其中恰好有一个 Release tar 与一个配套 checksum，不要把包装包直接当 Release。
+10. 不要在 ECS 重新构建其他代码。确需 Codeup 临时读取能力时：
    - 创建只读、一次性 Deploy Key；
    - 只为 ECS 公网 IP 临时放行 Codeup；
    - 完成或失败后移除 Deploy Key、ECS 私钥/公钥、临时源码目录并关闭临时白名单。
-9. 部署前检查运行中任务数；运行时不空闲则等待，不得强制切换。
-10. 盘点 `/opt/video2`、目标 Release、共享 `.env`、业务数据库与日志目录的 owner/mode。不得修改受保护数据。
-11. 始终以线上服务用户执行发布：
+11. 部署前检查运行中任务数；运行时不空闲则等待，不得强制切换。
+12. 盘点 `/opt/video2`、目标 Release、共享 `.env`、业务数据库与日志目录的 owner/mode。不得修改受保护数据。
+13. 始终以线上服务用户执行发布：
 
    ```bash
    sudo -u ecs-user -H env \
@@ -112,8 +115,8 @@ publish-verified → VMDeploy → video2-production/video2prod → ecs-user 发�
        "$TARGET_SHA" "$STAGING_DIR" prebuilt
    ```
 
-12. 将部署 stdout/stderr 保存到与 `TARGET_SHA` 绑定的日志，再向控制台输出短尾部摘要。部署脚本失败时必须自动恢复上一 Release；不要手工拼凑半成功状态。
-13. 不以 `root` 调用 Release 内的 PM2。若发现 `/root/.pm2`，先证明其中没有 Video2 进程，再只清理该错误 PM2 实例的 Video2 状态。
+14. 将部署 stdout/stderr 保存到与 `TARGET_SHA` 绑定的日志，再向控制台输出短尾部摘要。部署脚本失败时必须自动恢复上一 Release；不要手工拼凑半成功状态。
+15. 不以 `root` 调用 Release 内的 PM2。若发现 `/root/.pm2`，先证明其中没有 Video2 进程，再只清理该错误 PM2 实例的 Video2 状态。
 
 ## 5. 验证真实运行身份
 
@@ -140,7 +143,7 @@ PID 在健康检查过程中变化、cwd 不匹配、内部请求失败或公网
 ## 6. 清理、记录与报告
 
 1. 清理前解析并盘点每个精确临时目标。只删除本次 run 的临时密钥、源码、staging 和 pending artifact；保留 verified Release 与回滚所需的上一版本。
-2. 再次确认一次性 Codeup Deploy Key 已移除、ECS 临时白名单已关闭。供公共集群长期读取 Codeup 的最小范围白名单可以保留，但要在报告中说明。
+2. 再次确认一次性 Codeup Deploy Key 和临时白名单已移除。供公共集群读取 Codeup/Packages 以及供 VMDeploy 从 ECS 下载 Packages 的精确、已启用、最小应用范围白名单可以保留，但要在报告中说明。
 3. 更新仓库外部署记录。记录时间、完整 SHA、相对上版变化、并行门禁墙钟时间、部署与验收耗时、失败/重试和剩余风险。
 4. 检查 Video2 工作树，明确现有未提交修改不属于已冻结 SHA。
 5. 最终报告提供：

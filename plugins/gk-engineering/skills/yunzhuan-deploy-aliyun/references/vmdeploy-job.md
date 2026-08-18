@@ -30,6 +30,7 @@ deploy_job:
     artifactDownloadPath: /tmp/video2-${PIPELINE_ID}-${BUILD_NUMBER}-${TARGET_SHA}.packages.tar.gz
     executeUser: ecs-user
     run: |
+      exec /bin/bash <<'VIDEO2_DEPLOY_BASH'
       set -Eeuo pipefail
       test "$(id -un)" = "ecs-user"
       : "${TARGET_SHA:?TARGET_SHA is required}"
@@ -68,7 +69,7 @@ deploy_job:
       (cd "$(dirname "$release_tar")" && sha256sum --check "$(basename "$checksum_file")")
 
       tar -tzf "$release_tar" > "$inventory"
-      if grep -Eq '(^|/)(\.env|data/|storage/|.*\.sqlite([.-]|$)|id_(rsa|ed25519))' "$inventory"; then
+      if grep -Eq '^(\./)?(\.env($|\.[^/]+$|/)|data/|storage/|[^/]*\.sqlite([.-][^/]*)?$|id_(rsa|ed25519)($|/))' "$inventory"; then
         echo 'Protected state or credentials found in verified release' >&2
         exit 65
       fi
@@ -89,9 +90,14 @@ deploy_job:
       public_status="$(curl --fail --silent --show-error --max-time 15 --output /dev/null --write-out '%{http_code}' https://47.98.184.79/)"
       test "$public_status" = "200"
       printf 'Browserless deployment verified: sha=%s public_https=%s\n' "$TARGET_SHA" "$public_status"
+      VIDEO2_DEPLOY_BASH
 ```
 
-必须先使用云效编辑器的“校验”，再“仅保存”，随后从流水线详情接口重新读取已持久化 `flow`。只有接口返回的配置同时包含上述依赖、制品引用、主机组、用户和验收标记，才算配置完成。配置工作不得点击“保存并运行”。
+`VMDeploy` 会先用 `/bin/sh` 执行 `run`，因此 Bash heredoc 不是装饰。没有它时，`set -o pipefail` 会在第一行业务命令前失败，后续 `[[`、数组、`mapfile` 和进程替换也无法运行。保存前把 YAML 中解析出的 `run` 交给 `/bin/bash -n` 做语法检查。
+
+敏感路径表达式只保护 Release 根目录。修改后必须同时验证两组样例：真实 inventory 中的 `src/adapters/storage/` 与 `src/server/storage/` 不命中；根目录 `.env.production`、`data/`、`storage/`、`video2.sqlite-wal` 和 `id_ed25519` 必须命中。
+
+必须先使用云效编辑器的“校验”，再“仅保存”，随后从流水线详情接口重新读取已持久化 `flow`。只有接口返回的配置同时包含上述依赖、制品引用、主机组、用户、Bash 包装、根目录敏感路径检查和验收标记，才算配置完成。配置工作不得点击“保存并运行”。
 
 ## 失败关闭
 
