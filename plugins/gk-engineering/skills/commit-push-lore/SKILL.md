@@ -34,4 +34,4 @@ Add `Constraint:`, `Rejected:`, `Confidence:`, `Scope-risk:`, `Reversibility:`, 
 
 - Do not switch branches, merge branches, force-push, stash, discard, or stage unrelated work. A commit request never authorizes removing code that is outside the intended commit.
 - Do not claim a clean tree when unrelated changes remain.
-- If the user asks to merge into the primary branch, hand off to `merge-push-primary` after the source work is committed.
+- If the user asks to merge into the primary branch, hand off to `merge-push-primary`; that workflow integrates intended changes into local main before committing and pushing.

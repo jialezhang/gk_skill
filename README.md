@@ -121,7 +121,7 @@ The entry `SKILL.md` files are intentionally short routing surfaces. They are no
 | Skill | Full procedure behind the entry point |
 | --- | --- |
 | `$commit-push-lore` | Scoped staging, repository-compliant Lore commit messages, optional current-branch push, and post-commit verification without disturbing unrelated work |
-| `$merge-push-primary` | Remote-default-branch detection, committed-source merge, merged-result verification, and safe primary-branch push without rewriting shared history |
+| `$merge-push-primary` | Merge current-branch changes into local main before committing and pushing, verify the result, remain on main, and safely delete the local source branch |
 | `$sync-worktrees-primary` | Active-worktree inventory, clean-source consolidation into remote primary, commit-ancestry proof, documented service restart, and runtime-revision health evidence |
 | `$yunzhuan-deploy-aliyun` | Immutable Video2 release deployment through Yunxiao parallel quality gates, verified prebuilt artifacts, ECS service-user isolation, runtime identity proof, and temporary-access cleanup |
 | `$product-to-delivery` | Lifecycle state detection, approval protocol, stage routing, recovery, and Sol/Terra authority boundaries |
